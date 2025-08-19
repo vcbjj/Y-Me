@@ -13,7 +13,7 @@ import tempfile
 import os
 import re
 
-API_BASE = "التوكن"
+API_BASE = "https://secretv1.sbs/api/v9?url="
 
 async def download_and_send(event, platform, link):
     zed = await edit_or_reply(event, f"⏳ جاري التحميل من {platform}...")
