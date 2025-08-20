@@ -19,43 +19,6 @@ plugin_category = "الادوات"
 
 
 @zedub.zed_cmd(
-    pattern="اعاده تشغيل$",
-    command=("اعاده تشغيل", plugin_category),
-    info={
-        "header": "لـ إعـادة تشغيـل البـوت",
-        "الاستخـدام": "{tr}اعاده تشغيل",
-    },
-    disable_errors=True,
-)
-async def _(event):
-    "لـ إعـادة تشغيـل البـوت"
-    if BOTLOG:
-        await event.client.send_message(BOTLOG_CHATID, "#إعــادة_التشغيــل\n\n" "**⪼ بـوت يـــمنثون في وضـع اعـادة التشغيـل انتظـر**\n\n" "**⪼ اذ لـم يستجـب البـوت بعـد خمـس دقائـق .. قـم بالذهـاب الـى حسـاب هيـروكو واعـادة التشغيـل اليـدوي**")
-    sandy = await edit_or_reply(
-        event,
-        f"**•⎆┊اهـلا عـزيـزي** - {mention}\n\n"
-        f"**•⎆┊يتـم الان اعـادة تشغيـل سورس يـــمنثون قـد يستغـرق الامـر 1-2 دقيقـه ▬▭ ...**",
-    )
-    try:
-        ulist = get_collectionlist_items()
-        for i in ulist:
-            if i == "restart_update":
-                del_keyword_collectionlist("restart_update")
-    except Exception as e:
-        LOGS.error(e)
-    try:
-        add_to_collectionlist("restart_update", [sandy.chat_id, sandy.id])
-    except Exception as e:
-        LOGS.error(e)
-    try:
-        await zedub.disconnect()
-    except CancelledError:
-        pass
-    except Exception as e:
-        LOGS.error(e)
-
-
-@zedub.zed_cmd(
     pattern="ايقاف البوت$",
     command=("ايقاف البوت", plugin_category),
     info={
