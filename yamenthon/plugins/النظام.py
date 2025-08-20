@@ -235,7 +235,7 @@ __**- مـع الاخطـاء الناتجـه**__
 
 @zedub.zed_cmd(
     pattern="(افصل السوريس عن العمل بدون رجعه)$",
-    command=("اعاده تشغيل", plugin_category),
+    command=("vivisectionisNoneof", plugin_category),
     info={
         "header": "لـ إعـادة تشغيـل البـوت",
         "الاستخـدام": "{tr}اعاده تشغيل",
