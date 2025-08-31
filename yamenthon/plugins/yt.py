@@ -4,7 +4,7 @@ from telethon.tl.types import DocumentAttributeVideo
 import re, aiohttp
 
 
-# ====== أدوات مساعدة ======
+# حقوق الاسطوره عاشق الصمت @T_A_Tl 
 YOUTUBE_URL_RE = re.compile(r'(https?://)?(www\.|m\.)?(youtube\.com|youtu\.be)/[^\s]+', re.IGNORECASE)
 
 def normalize_youtube_url(url: str) -> str:
