@@ -7,7 +7,9 @@ from .. import zedub
 from ..core.managers import edit_or_reply
 from telethon.tl.types import DocumentAttributeVideo
 import re, aiohttp
-
+import os
+import asyncio
+import subprocess
 
 # حقوق الاسطوره عاشق الصمت @T_A_Tl 
 YOUTUBE_URL_RE = re.compile(r'(https?://)?(www\.|m\.)?(youtube\.com|youtu\.be)/[^\s]+', re.IGNORECASE)
@@ -92,6 +94,8 @@ async def cmd_download_video(event):
         await m.edit(f"✘ خطأ: {e}")
 # حقوق الاسطوره عاشق الصمت @T_A_Tl 
 
+
+
 @zedub.zed_cmd(pattern="تحميل(?: صوت)?(?: |$)(.*)")
 async def cmd_download_audio(event):
     reply = await event.get_reply_message()
@@ -104,15 +108,35 @@ async def cmd_download_audio(event):
     m = await edit_or_reply(event, "⏳ جاري جلب الصوت ...")
     try:
         data = await fetch_api(url)
-        link = pick_link(data, want_audio=True)
-        if not link:
-            return await m.edit("✘ لم أجد رابط صوت مناسب في JSON")
 
+        # نختار أقل جودة فيديو عشان نطلع منه الصوت
+        link = min(data.get("links", []), key=lambda x: int(x.get("clen", "999999999")))
+        if not link:
+            return await m.edit("✘ لم أجد رابط لتحويله صوت")
+
+        video_file = "temp_video.mp4"
+        audio_file = "temp_audio.mp3"
+
+        # تحميل الفيديو
+        async with aiohttp.ClientSession() as session:
+            async with session.get(link["url"]) as resp:
+                with open(video_file, "wb") as f:
+                    f.write(await resp.read())
+
+        # استخراج الصوت باستخدام ffmpeg
+        cmd = ["ffmpeg", "-i", video_file, "-vn", "-ab", "192k", "-ar", "44100", "-y", audio_file]
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # إرسال الملف الصوتي
         await event.client.send_file(
             event.chat_id,
-            file=link["url"],
-            caption=f"🎶 {data.get('title','')}\n 📥[𝒀𝑨𝑴𝑬𝑵𝑻𝑯𝑶𝑵𖤍](https://t.me/YamenThon)",
+            file=audio_file,
+            caption=f"🎶 {data.get('title','')}"
         )
         await m.delete()
     except Exception as e:
         await m.edit(f"✘ خطأ: {e}")
+    finally:
+        for f in ["temp_video.mp4", "temp_audio.mp3"]:
+            if os.path.exists(f):
+                os.remove(f)
