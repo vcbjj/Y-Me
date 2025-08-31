@@ -108,11 +108,16 @@ async def cmd_download_audio(event):
     m = await edit_or_reply(event, "⏳ جاري جلب الصوت ...")
     try:
         data = await fetch_api(url)
+        links = data.get("links", [])
+
+        if not links:
+            return await m.edit("✘ لم أجد أي روابط داخل JSON")
 
         # نختار أقل جودة فيديو عشان نطلع منه الصوت
-        link = min(data.get("links", []), key=lambda x: int(x.get("clen", "999999999")))
-        if not link:
-            return await m.edit("✘ لم أجد رابط لتحويله صوت")
+        try:
+            link = min(links, key=lambda x: int(x.get("clen", "999999999")))
+        except Exception:
+            return await m.edit("✘ لم أستطع تحديد رابط صالح")
 
         video_file = "temp_video.mp4"
         audio_file = "temp_audio.mp3"
@@ -120,12 +125,21 @@ async def cmd_download_audio(event):
         # تحميل الفيديو
         async with aiohttp.ClientSession() as session:
             async with session.get(link["url"]) as resp:
+                if resp.status != 200:
+                    return await m.edit("✘ فشل تحميل الفيديو من الرابط")
                 with open(video_file, "wb") as f:
                     f.write(await resp.read())
 
         # استخراج الصوت باستخدام ffmpeg
-        cmd = ["ffmpeg", "-i", video_file, "-vn", "-ab", "192k", "-ar", "44100", "-y", audio_file]
+        cmd = [
+            "ffmpeg", "-i", video_file,
+            "-vn", "-ab", "192k", "-ar", "44100",
+            "-y", audio_file
+        ]
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        if not os.path.exists(audio_file):
+            return await m.edit("✘ فشل تحويل الفيديو إلى صوت")
 
         # إرسال الملف الصوتي
         await event.client.send_file(
