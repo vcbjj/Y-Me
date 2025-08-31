@@ -49,10 +49,13 @@ async def fetch_api(url: str):
 def pick_link(data: dict, want_audio=False):
     """اختيار أول رابط مناسب من القائمة"""
     for link in data.get("links", []):
-        if want_audio and link.get("type") == "audio":
-            return link
-        if not want_audio and link.get("type") == "video" and "mp4" in link.get("ext", ""):
-            return link
+        if want_audio:
+            # نتأكد إنه صوت (حتى لو الـ type = video)
+            if link.get("type") == "audio" or "audio" in link.get("quality", "").lower():
+                return link
+        else:
+            if link.get("type") == "video" and "mp4" in link.get("ext", ""):
+                return link
     return None
 
 
