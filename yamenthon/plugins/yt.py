@@ -1,7 +1,7 @@
 from .. import zedub
 from ..core.managers import edit_or_reply
 from telethon.tl.types import DocumentAttributeVideo
-import re, aiohttp, os, asyncio
+import re, aiohttp
 
 
 # ====== أدوات مساعدة ======
@@ -32,16 +32,23 @@ def find_youtube_url(*candidates) -> str | None:
 
 
 # ====== تحميل عبر API ======
-async def fetch_api(url: str, audio: bool = False):
+async def fetch_api(url: str):
     api_url = f"https://sii3.moayman.top/api/do.php?url={url}"
     async with aiohttp.ClientSession() as session:
         async with session.get(api_url) as resp:
             if resp.status != 200:
                 raise Exception(f"API error {resp.status}")
-            data = await resp.json()
-            if not data.get("status"):
-                raise Exception("فشل جلب الرابط من API")
-            return data
+            return await resp.json()
+
+
+def pick_link(data: dict, want_audio=False):
+    """اختيار أول رابط مناسب من القائمة"""
+    for link in data.get("links", []):
+        if want_audio and link.get("type") == "audio":
+            return link
+        if not want_audio and link.get("type") == "video" and "mp4" in link.get("ext", ""):
+            return link
+    return None
 
 
 # ====== أوامر ZedUB ======
@@ -56,16 +63,17 @@ async def cmd_download_video(event):
 
     m = await edit_or_reply(event, "⏳ جاري جلب الفيديو ...")
     try:
-        data = await fetch_api(url, audio=False)
-        dl_url = data.get("url")
-        title = data.get("title", "Video")
+        data = await fetch_api(url)
+        link = pick_link(data, want_audio=False)
+        if not link:
+            return await m.edit("✘ لم أجد رابط فيديو مناسب في JSON")
 
         await event.client.send_file(
             event.chat_id,
-            file=dl_url,
-            caption=f"✔ تم التحميل: {title}",
+            file=link["url"],
+            caption=f"✔ تم التحميل: {data.get('title','')}",
             attributes=[DocumentAttributeVideo(
-                duration=int(data.get("duration", 0)),
+                duration=int(float(link.get("dur", 0))),
                 w=1280,
                 h=720,
                 supports_streaming=True
@@ -87,14 +95,15 @@ async def cmd_download_audio(event):
 
     m = await edit_or_reply(event, "⏳ جاري جلب الصوت ...")
     try:
-        data = await fetch_api(url, audio=True)
-        dl_url = data.get("audio") or data.get("url")
-        title = data.get("title", "Audio")
+        data = await fetch_api(url)
+        link = pick_link(data, want_audio=True)
+        if not link:
+            return await m.edit("✘ لم أجد رابط صوت مناسب في JSON")
 
         await event.client.send_file(
             event.chat_id,
-            file=dl_url,
-            caption=f"🎶 {title}",
+            file=link["url"],
+            caption=f"🎶 {data.get('title','')}",
         )
         await m.delete()
     except Exception as e:
