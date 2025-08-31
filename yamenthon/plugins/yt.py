@@ -1,3 +1,8 @@
+# وش واجي تخمط على الملف وتسمي نفسك مطور ياخماط
+# روح تعلم وصير مطور بدل ما تخمط حقوقي
+# تأخذ الملف وتخمط عليه بس ليش مسمي نفسك مطور
+# الملف تابع لسورس يمنثون حقوق الاسطوره عاشق الصمت @T_A_Tl 
+
 from .. import zedub
 from ..core.managers import edit_or_reply
 from telethon.tl.types import DocumentAttributeVideo
@@ -31,7 +36,7 @@ def find_youtube_url(*candidates) -> str | None:
     return None
 
 
-# ====== تحميل عبر API ======
+# حقوق الاسطوره عاشق الصمت @T_A_Tl 
 async def fetch_api(url: str):
     api_url = f"https://sii3.moayman.top/api/do.php?url={url}"
     async with aiohttp.ClientSession() as session:
@@ -51,7 +56,7 @@ def pick_link(data: dict, want_audio=False):
     return None
 
 
-# ====== أوامر ZedUB ======
+# حقوق الاسطوره عاشق الصمت @T_A_Tl 
 @zedub.zed_cmd(pattern="تحميل(?: فيديو)?(?: |$)(.*)")
 async def cmd_download_video(event):
     reply = await event.get_reply_message()
@@ -71,7 +76,7 @@ async def cmd_download_video(event):
         await event.client.send_file(
             event.chat_id,
             file=link["url"],
-            caption=f"✔ تم التحميل: {data.get('title','')}",
+            caption=f"✔ تم التحميل: {data.get('title','')}\n 📥[𝒀𝑨𝑴𝑬𝑵𝑻𝑯𝑶𝑵𖤍](https://t.me/YamenThon)",
             attributes=[DocumentAttributeVideo(
                 duration=int(float(link.get("dur", 0))),
                 w=1280,
@@ -82,7 +87,7 @@ async def cmd_download_video(event):
         await m.delete()
     except Exception as e:
         await m.edit(f"✘ خطأ: {e}")
-
+# حقوق الاسطوره عاشق الصمت @T_A_Tl 
 
 @zedub.zed_cmd(pattern="تحميل(?: صوت)?(?: |$)(.*)")
 async def cmd_download_audio(event):
@@ -103,7 +108,7 @@ async def cmd_download_audio(event):
         await event.client.send_file(
             event.chat_id,
             file=link["url"],
-            caption=f"🎶 {data.get('title','')}",
+            caption=f"🎶 {data.get('title','')}\n 📥[𝒀𝑨𝑴𝑬𝑵𝑻𝑯𝑶𝑵𖤍](https://t.me/YamenThon)",
         )
         await m.delete()
     except Exception as e:
