@@ -34,11 +34,9 @@ tr = Config.COMMAND_HAND_LER
 DOWNLOAD_DIR = "./ytdl_cache"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-
 def get_thumb(name):
     url = f"https://github.com/TgCatUB/CatUserbot-Resources/blob/master/Resources/Inline/{name}?raw=true"
     return types.InputWebDocument(url=url, size=0, mime_type="image/png", attributes=[])
-
 
 def ibuild_keyboard(buttons):
     keyb = []
@@ -49,7 +47,6 @@ def ibuild_keyboard(buttons):
         else:
             keyb.append([Button.url(btn[0], btn[1])])
     return keyb
-
 
 @zedub.tgbot.on(InlineQuery)
 async def inline_handler(event):
@@ -221,10 +218,8 @@ async def inline_handler(event):
         except Exception:
             pass
 
-
 def download_with_api(video_url: str, output_path: str):
-    """
-    Try to fetch download links from the external API and download the best mp4 available.
+    """Try to fetch download links from the external API and download the best mp4 available.
     Raises Exception on failure.
     """
     api_endpoint = "https://sii3.moayman.top/api/do.php"
@@ -296,18 +291,14 @@ def download_with_api(video_url: str, output_path: str):
             pass
         raise Exception(f"فشل تنزيل الملف من رابط الملف المحدد: {e}")
 
-
 def download_with_ytdlp_fallback(video_url: str, output_path: str):
-    """
-    Use yt-dlp as a fallback if the API approach fails.
-    """
+    """Use yt-dlp as a fallback if the API approach fails."""
     ydl_opts = {
         "format": "mp4[height<=720]/best[ext=mp4]/best",
         "outtmpl": output_path,
         "noplaylist": True,
         "quiet": True,
-        "no_warnings": True,
-        # avoid console logs to interfere
+        "no_warnings": True,  # avoid console logs to interfere
         "logger": None,
     }
     try:
@@ -322,17 +313,17 @@ def download_with_ytdlp_fallback(video_url: str, output_path: str):
             pass
         raise Exception(f"yt-dlp فشل في التحميل: {e}")
 
-
 def download_worker(video_url: str, output_path: str):
-    """
-    Try API download first, if it fails fall back to yt-dlp.
+    """Try API download first, if it fails fall back to yt-dlp.
     This function is synchronous so it should be run in an executor from async code.
     """
+    api_err = None  # تهيئة المتغير خارج كتلة الاستثناء لتجنّب الوصول لمتغير غير معرف
     try:
         download_with_api(video_url, output_path)
         return
-    except Exception as api_err:
-        LOGS.warning("API download failed: %s", api_err)
+    except Exception as e:
+        api_err = e
+        LOGS.warning("API download failed: %s", e)
 
     # fallback to yt-dlp
     try:
@@ -340,10 +331,12 @@ def download_worker(video_url: str, output_path: str):
         return
     except Exception as ytdlp_err:
         LOGS.exception("yt-dlp fallback failed: %s", ytdlp_err)
-        raise Exception(f"كلا الطريقتين فشلتا: API_error={api_err}; yt-dlp_error={ytdlp_err}")
+        # ربط الاستثناءات وإعطاء رسالة مفيدة
+        raise Exception(
+            f"كلا الطريقتين فشلتا: API_error={repr(api_err)}; yt-dlp_error={repr(ytdlp_err)}"
+        ) from ytdlp_err
 
-
-@zedub.tgbot.on(events.CallbackQuery(pattern=b"ytdl_download_(.*)"))
+@zedub.tgbot.on(events.CallbackQuery(pattern=r"ytdl_download_(.*)"))
 async def ytdl_download_callback(event):
     try:
         # show an immediate alert that the download started
@@ -415,10 +408,11 @@ async def ytdl_download_callback(event):
 
     except Exception as e:
         LOGS.exception("Error in ytdl_download_callback: %s", e)
-        # try to remove partial file
+        # try to remove partial file safely
         try:
-            if os.path.exists(video_path):
-                os.remove(video_path)
+            video_path_local = locals().get('video_path')
+            if video_path_local and os.path.exists(video_path_local):
+                os.remove(video_path_local)
         except Exception:
             pass
         # send friendly error message
