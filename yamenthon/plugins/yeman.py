@@ -65,22 +65,26 @@ async def inline_handler(event):
             found_ = True
 
             if link is None:
-                search = VideosSearch(str_y[1].strip(), limit=15)
-                resp = (search.result()).get("result")
-                if len(resp) == 0:
-                    found_ = False
-                else:
-                    outdata = await result_formatter(resp)
-                    key_ = rand_key()
-                    ytsearch_data.store_(key_, outdata)
+    search = VideosSearch(str_y[1].strip(), limit=15)
+    resp = (search.result()).get("result")
+    if not resp:
+        found_ = False
+    else:
+        outdata = await result_formatter(resp)
+        if not outdata:
+            found_ = False
+        else:
+            key_ = rand_key()
+            ytsearch_data.store_(key_, outdata)
 
-                    buttons = [
-                        Button.inline(f"1 / {len(outdata)}", data=f"ytdl_next_{key_}_1"),
-                        Button.inline("القائمـة 📜", data=f"ytdl_listall_{key_}_1"),
-                        Button.inline("⬇️  تحميـل", data=f'ytdl_download_{outdata[0]["video_id"]}_0'),
-                    ]
-                    caption = outdata[0]["message"]
-                    photo = await get_ytthumb(outdata[0]["video_id"])
+            first_video = outdata[0]  # ✅ تأكدنا من وجود عنصر
+            buttons = [
+                Button.inline(f"1 / {len(outdata)}", data=f"ytdl_next_{key_}_1"),
+                Button.inline("القائمـة 📜", data=f"ytdl_listall_{key_}_1"),
+                Button.inline("⬇️  تحميـل", data=f'ytdl_download_{first_video["video_id"]}_0'),
+            ]
+            caption = first_video["message"]
+            photo = await get_ytthumb(first_video["video_id"])
             else:
                 caption, buttons = await download_button(link, body=True)
                 photo = await get_ytthumb(link)
