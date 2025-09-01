@@ -7,12 +7,12 @@ import time
 import asyncio
 from pathlib import Path
 from uuid import uuid4
-
+import requests
 from telethon import Button, types, events
 from telethon.errors import QueryIdInvalidError
 from telethon.events import CallbackQuery, InlineQuery
 from youtubesearchpython import VideosSearch
-import yt_dlp  # ✅ مكتبة التحميل الجديدة
+import yt_dlp  
 
 from yamenthon import zedub
 from ..Config import Config
@@ -173,16 +173,30 @@ async def inline_handler(event):
 
 
 # ✅ وظيفة تحميل الفيديو باستخدام yt_dlp
+
+
 def download_with_ytdlp(video_url, output_path):
-    ydl_opts = {
-        'outtmpl': output_path,
-        'format': 'mp4[height<=360]',
-        'quiet': True,
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt',  
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
+    try:
+        api_url = f"https://sii3.moayman.top/api/do.php?url={video_url}"
+        resp = requests.get(api_url)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # ناخذ أول رابط (أو ممكن تختار حسب الجودة)
+        if "links" in data and len(data["links"]) > 0:
+            file_url = data["links"][0]["url"]
+
+            # ننزل الفيديو مباشرة من الرابط
+            file_resp = requests.get(file_url, stream=True)
+            file_resp.raise_for_status()
+            with open(output_path, "wb") as f:
+                for chunk in file_resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        else:
+            raise Exception("❌ لم يتم العثور على روابط تحميل من الـ API.")
+
+    except Exception as e:
+        raise Exception(f"خطأ أثناء التحميل من الـ API: {e}")
 
 
 @zedub.tgbot.on(events.CallbackQuery(pattern=b"ytdl_download_(.*)"))
