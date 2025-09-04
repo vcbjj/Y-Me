@@ -84,7 +84,7 @@ async def _(zthon):
         return await zthon.edit("**الرجاء الرد على أي نص**")
     reply_message = await zthon.get_reply_message()
     chat = "@office2pdf_bot"
-    await iqthon.edit("**جاري تحويل إلى PDF...**")
+    await iqthon.edit("**افجاري تحويل إلى PDF...**")
     try:
         async with bot.conversation(chat) as conv:
             try:
