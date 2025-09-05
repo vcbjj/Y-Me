@@ -172,7 +172,7 @@ class ZedUserBotClient(TelegramClient):
                         }
                         ftext += "\n\n--------نهـاية سجـل تتبـع يمنثون  𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉𖤊--------"
                         ftext += "\n\n\n- آخـر 5 ملفـات تم تحديثهـا :\n"
-                        command = 'لايوجد'
+                        command = "git log -n 5 --name-only --pretty=format:'' | grep -v '^$' | sort -u | head -n 5"
                         output = (await runcmd(command))[:2]
                         result = output[0] + output[1]
                         ftext += result
@@ -292,7 +292,7 @@ class ZedUserBotClient(TelegramClient):
                             "date": datetime.datetime.now(),
                         }
                         ftext += "\n\n--------نهـاية سجـل تتبـع يمنثون  𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉𖤊--------"
-                        command = 'git log --pretty=format:"%an: %s" -5'
+                        command = "git log -n 5 --name-only --pretty=format:'' | grep -v '^$' | sort -u | head -n 5"
                         ftext += "\n\n\n- آخـر 5 ملفـات تم تحديثهـا :\n"
                         output = (await runcmd(command))[:2]
                         result = output[0] + output[1]
