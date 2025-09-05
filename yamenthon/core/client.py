@@ -172,7 +172,7 @@ class ZedUserBotClient(TelegramClient):
                         }
                         ftext += "\n\n--------نهـاية سجـل تتبـع يمنثون  𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉𖤊--------"
                         ftext += "\n\n\n- آخـر 5 ملفـات تم تحديثهـا :\n"
-                        command = 'git log --pretty=format:"%an: %s" -5'
+                        command = 'لايوجد'
                         output = (await runcmd(command))[:2]
                         result = output[0] + output[1]
                         ftext += result
