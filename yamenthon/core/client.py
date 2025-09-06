@@ -164,7 +164,6 @@ class ZedUserBotClient(TelegramClient):
                                   \n- ايـدي الشخـص : {str(check.sender_id)}\
                                   \n- رابـط الرسـالـه : {await check.client.get_msg_link(check)}\
                                   \n\n- التقـريـر :\n{str(check.text)}\
-                                  \n\n- التفـاصـيل :\n{str(traceback.format_exc())}\
                                   \n\n- نـص الإشعـار :\n{str(sys.exc_info()[1])}"
                         new = {
                             "error": str(sys.exc_info()[1]),
@@ -285,7 +284,6 @@ class ZedUserBotClient(TelegramClient):
                                   \n- ايـدي الشخـص : {str(check.sender_id)}\
                                   \n- رابـط الرسـالـه : {await check.client.get_msg_link(check)}\
                                   \n\n- التقـريـر :\n{str(check.text)}\
-                                  \n\n- التفـاصـيل :\n{str(traceback.format_exc())}\
                                   \n\n- نـص الإشعـار :\n{str(sys.exc_info()[1])}"
                         new = {
                             "error": str(sys.exc_info()[1]),
