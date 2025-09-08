@@ -96,6 +96,17 @@ async def update_yamenthon(event):
 
 
 async def perform_update(xx):
-    await bash(f"git pull && {sys.executable} -m pip install -r requirements.txt")
-    await xx.edit("✅ <strong>تم تجهيز السورس للعمل انتظر قليلا حتى يصلك اشعار في مجموعة السجل تفيد بأن السورس بدا في العمل.</strong>", parse_mode="html")
+    try:
+        # المحاولة الأولى: تحديث عادي
+        await bash("git pull")
+    except Exception:
+        # لو فشل التحديث العادي: تحديث إجباري
+        await xx.edit("**⚠️ التحديث العادي فشل بسبب تعديلات محلية.**\n**⌔∮ جاري فرض التحديث...**\n**مميزه التحديث الإجباري حصرية بسورس يمنثون عكس جميع السورسات 🇾🇪**")
+        await bash("git fetch --all && git reset --hard origin/HEAD")
+
+    # تثبيت المتطلبات بعد التحديث
+    await bash(f"{sys.executable} -m pip install -r requirements.txt")
+    await xx.edit("✅ <strong>✅ تم تجهيز السورس للعمل انتظر قليلا حتى يصلك اشعار في مجموعة السجل تفيد بأن السورس بدا في العمل.</strong>", parse_mode="html")
+
+    # إعادة تشغيل السورس
     os.execl(sys.executable, sys.executable, "-m", "yamenthon")
