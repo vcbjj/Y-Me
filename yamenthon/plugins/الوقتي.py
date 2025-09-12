@@ -6,6 +6,7 @@ import os
 import shutil
 import time
 import requests
+import pytz
 from datetime import datetime
 
 from PIL import Image, ImageDraw, ImageFont
@@ -38,6 +39,11 @@ PAUTO = gvarstatus("Z_PAUTO") or "(البروفايل تلقائي|الصوره 
 BAUTO = gvarstatus("Z_BAUTO") or "(البايو تلقائي|البايو الوقتي|بايو وقتي|نبذه وقتيه|النبذه الوقتيه)"
 
 
+def get_local_time(format="%I:%M"):
+    tz = pytz.timezone(Config.TZ)
+    return datetime.now(tz).strftime(format)
+
+
 async def digitalpicloop():
     DIGITALPICSTART = gvarstatus("digitalpic") == "true"
     i = 0
@@ -51,7 +57,7 @@ async def digitalpicloop():
         zedfont = gvarstatus("DEFAULT_PIC") or "yamenthon/helpers/styles/Papernotes.ttf"
         shutil.copy(digitalpic_path, autophoto_path)
         Image.open(autophoto_path)
-        current_time = datetime.now().strftime("%I:%M")
+        current_time = get_local_time("%I:%M")
         img = Image.open(autophoto_path)
         drawn_text = ImageDraw.Draw(img)
         fnt = ImageFont.truetype(f"{zedfont}", 35)
@@ -77,7 +83,7 @@ async def digitalpicloop():
 async def autoname_loop():
     while AUTONAMESTART := gvarstatus("autoname") == "true":
         DM = time.strftime("%d-%m-%y")
-        HM = time.strftime("%I:%M")
+        HM = get_local_time("%I:%M")
         for normal in HM:
             if normal in normzltext:
               namerzfont = gvarstatus("ZI_FN") or "𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵𝟬"
@@ -98,8 +104,8 @@ async def autoname_loop():
 async def autobio_loop():
     AUTOBIOSTART = gvarstatus("autobio") == "true"
     while AUTOBIOSTART:
-        DMY = time.strftime("%d.%m.%Y")
-        HM = time.strftime("%I:%M")
+        DMY = get_local_time("%d.%m.%Y")
+        HM = get_local_time("%I:%M")
         for normal in HM:
             if normal in normzltext:
               namerzfont = gvarstatus("ZI_FN") or "𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵𝟬"
