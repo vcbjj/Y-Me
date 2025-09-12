@@ -292,17 +292,23 @@ async def mybot():
             await asyncio.sleep(1)
             await bot.send_file("@BotFather", "yamenthon/resources/Yemen2.jpg")
             await asyncio.sleep(3)
-            await bot.send_message("@BotFather", "/setabouttext")
-            await asyncio.sleep(1)
-            await bot.send_message("@BotFather", botname)
-            await asyncio.sleep(1)
-            await bot.send_message("@BotFather", f"- بـوت يمنثون المسـاعـد 🤴🦾 الخـاص بـ  {bot.me.first_name} ")
-            await asyncio.sleep(3)
+            #await bot.send_message("@BotFather", "/setabouttext")
+            #await asyncio.sleep(1)
+            #await bot.send_message("@BotFather", botname)
+            #await asyncio.sleep(1)
+            #await bot.send_message("@BotFather", f"- البوت المساعد الخاص{bot.me.first_name} ")
+            #await asyncio.sleep(3)
             await bot.send_message("@BotFather", "/setdescription")
             await asyncio.sleep(1)
             await bot.send_message("@BotFather", botname)
             await asyncio.sleep(1)
-            await bot.send_message("@BotFather", f"•⎆┊انـا البــوت المسـاعـد الخــاص بـ {zel_zal} \n•⎆┊بـواسطـتـي يمكـنك التواصــل مـع مـالكـي ♥️\n•⎆┊قنـاة السـورس 🎗 @YamenThon 🌐")
+            await bot.send_message("@BotFather", f"""
+مـعـلـومـاتـي 🪄
+⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯
+• أنـا البـوت المسـاعـد الخـاص بـ {zel_zal}.
+• أسـهـم فـي تـيـسـيـر التواصـل مـع مـطـورِي بِكفـاءةٍ و سـرِيـة.
+• لـلـحـصـول عـلى السـورس ⦗ @YamenThon ⦘
+""")
         except Exception as e:
             print(e)
 
