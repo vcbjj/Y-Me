@@ -9,7 +9,7 @@ from . import BOTLOG, BOTLOG_CHATID, mention
 
 plugin_category = "الادوات"
 
-# قاموس التحويل من الاسماء المبسطة إلى الفارات الفعلية
+# قاموس التحويل من الاسماء المبسطة إلى التوكنات الفعلية
 var_yamenthon = {
     "البوت": "TG_BOT_TOKEN",
 }
@@ -31,8 +31,8 @@ cmds = [
 # ========================================================================
 
 @zedub.zed_cmd(
-    pattern="(ضع|جلب|حذف) فار ([\\s\\S]*)",
-    command=("فار", plugin_category),
+    pattern="(ضع|جلب) توكن ([\\s\\S]*)",
+    command=("توكن", plugin_category),
     info={
         "header": "To manage config vars.",
         "flags": {
@@ -41,12 +41,12 @@ cmds = [
             "del": "To delete the existing value",
         },
         "usage": [
-            "{tr}ضع فار <اسم فار> <قيمة فار>",
-            "{tr}جلب فار <اسم فار>",
-            "{tr}حذف فار <اسم فار>",
+            "{tr}ضع توكن <اسم توكن> <قيمة توكن>",
+            "{tr}جلب توكن <اسم توكن>",
+            
         ],
         "examples": [
-            "{tr}جلب فار ALIVE_NAME",
+            "{tr}جلب توكن ALIVE_NAME",
         ],
     },
 )
@@ -68,9 +68,9 @@ async def variable(event):
     with open(config, "r") as f:
         configs = f.readlines()
 
-    # ===== جلب فار =====
+    # ===== جلب توكن =====
     if cmd == "جلب":
-        cat = await edit_or_reply(event, "**⌔∮ جاري الحصول على المعلومات. **")
+        cat = await edit_or_reply(event, "**⌔∮ جاري الحصول على توكن البوت.... **")
         await asyncio.sleep(1)
         variable = event.pattern_match.group(2).split()[0]
         for i in configs:
@@ -87,14 +87,14 @@ async def variable(event):
             f"\n\n**⌔∮الفـار :** -> {variable} **غيـر موجود**❌"
         )
 
-    # ===== ضع فار =====
+    # ===== ضع توكن =====
     elif cmd == "ضع":
         user_input = "".join(event.text.split(maxsplit=2)[2:])
-        cat = await edit_or_reply(event, "**⌔∮جـارِ إعـداد المعلومـات . . .**")
+        cat = await edit_or_reply(event, "**⌔∮جـارِ إعـداد البوت المساعد الجديد\n.......♻️**")
         if not user_input:
-            return await cat.edit("**⌔∮** `.ضع فار ` **<اسـم الفـار> <القيمـه>**")
+            return await cat.edit("**⌔∮** `.ضع توكن ` **+ توكن بوتك**")
 
-        # أول جزء هو اسم فار (بالعربي أو الانجليزي)
+        # أول جزء هو اسم توكن (بالعربي أو الانجليزي)
         variable = "".join(user_input.split(maxsplit=1)[0])
         # ثاني جزء هو القيمة
         value = "".join(user_input.split(maxsplit=1)[1:])
@@ -105,7 +105,7 @@ async def variable(event):
         if variable not in var_checker:
             value = f"'{value}'"
             if not value:
-                return await cat.edit("**⌔∮** `.ضع فار ` **<اسـم الفـار> <القيمـه>**")
+                return await cat.edit("**⌔∮** `.ضع توكن ` **+ توكن بوتك**")
 
         await asyncio.sleep(1)
         match = False
@@ -140,39 +140,6 @@ async def variable(event):
 
         await event.client.reload(cat)
 
-    # ===== حذف فار =====
-    elif cmd == "حذف":
-        cat = await edit_or_reply(
-            event,
-            "**⌔∮جـارِ الحصول على معلومات لحذف المتغير الفـار من السيـرفـر ...**"
-        )
-        await asyncio.sleep(1)
-        variable = event.pattern_match.group(2).split()[0]
-        match = False
-        string = ""
-        for i in configs:
-            if variable in i:
-                match = True
-            else:
-                string += f"{i}"
-
-        with open(config, "w") as f1:
-            f1.write(string)
-
-        if match:
-            await cat.edit(
-                f"**- الفـار** `{variable}`  **تم حذفه بنجاح.**\n\n"
-                "**- يتم الان اعـادة تشغيـل بـوت يمن ثون "
-                "يستغـرق الامر 2-1 دقيقـه ▬▭ ...**"
-            )
-        else:
-            await cat.edit(
-                "𓆩 𝗦𝗼𝘂𝗿𝗰𝗲 𝗬𝗮𝗺𝗲𝗻𝗧𝗵𝗼𝗻 - 𝗖𝗼𝗻𝗳𝗶𝗴 𝗩𝗮𝗿𝘀 𓆪\n"
-                "𓍹ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ𓍻"
-                f"\n\n**⌔∮الفـار :** -> {variable} **غيـر موجود**❌"
-            )
-
-        await event.client.reload(cat)
 
 # ========================================================================
 
