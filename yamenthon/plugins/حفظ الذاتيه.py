@@ -106,22 +106,31 @@ async def sddm(event):
         return
 
     msg = event.message
+    media = msg.media
+    if not media:
+        return
 
-    # التحقق أن الوسائط ذاتية الاختفاء (بمؤقت أو عرض لمرة واحدة)
+    # ✅ التحقق من الصوتيات (voice) — ما نحفظها إلا إذا معها ttl_seconds
+    if hasattr(media, "document") and media.document:
+        for attr in media.document.attributes:
+            if attr.__class__.__name__ == "DocumentAttributeAudio" and getattr(attr, "voice", False):
+                if not (hasattr(media, "ttl_seconds") and media.ttl_seconds is not None):
+                    return
+
+    # ✅ الشرط العام لبقية الوسائط
     if not (
-        (hasattr(msg.media, "ttl_seconds") and msg.media.ttl_seconds is not None) or 
-        getattr(msg, "media_unread", False) or 
+        (hasattr(media, "ttl_seconds") and media.ttl_seconds is not None) or 
         (hasattr(msg, "ttl_period") and getattr(msg, "ttl_period", None) is not None)
     ):
         return
 
-    tmp_path = None
     try:
         # إنشاء ملف مؤقت
         file_path = await msg.download_media()
         if not file_path or not os.path.exists(file_path):
             return
-        #بيانات المرسل
+
+        # بيانات المرسل
         sender = await event.get_sender()
         chat = await event.get_chat()
         chat_title = getattr(chat, "title", getattr(chat, "first_name", "Unknown"))
@@ -155,7 +164,6 @@ async def sddm(event):
     finally:
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
-
 
 
 @zedub.zed_cmd(pattern="اعلان (\d*) ([\s\S]*)")
