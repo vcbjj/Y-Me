@@ -298,17 +298,11 @@ async def mybot():
             #await asyncio.sleep(1)
             #await bot.send_message("@BotFather", f"- البوت المساعد الخاص{bot.me.first_name} ")
             #await asyncio.sleep(3)
-            await bot.send_message("@BotFather", "/setdescription")
-            await asyncio.sleep(1)
-            await bot.send_message("@BotFather", botname)
-            await asyncio.sleep(1)
-            await bot.send_message("@BotFather", f"""
-مـعـلـومـاتـي 🪄
-⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯
-• أنـا البـوت المسـاعـد الخـاص بـ {zel_zal}.
-• أسـهـم فـي تـيـسـيـر التواصـل مـع مـطـورِي بِكفـاءةٍ و سـرِيـة.
-• لـلـحـصـول عـلى السـورس ⦗ @YamenThon ⦘
-""")
+            #await bot.send_message("@BotFather", "/setdescription")
+            #await asyncio.sleep(1)
+            #await bot.send_message("@BotFather", botname)
+            #await asyncio.sleep(1)
+            #await bot.send_message("@BotFather", f"الوصف في الشات")
         except Exception as e:
             print(e)
 
