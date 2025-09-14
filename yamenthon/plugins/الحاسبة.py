@@ -1,6 +1,5 @@
 import io
 import sys
-import traceback
 
 from . import zedub, edit_or_reply
 
@@ -18,7 +17,7 @@ plugin_category = "الادوات"
 async def calculator(event):
     "لـ حل المعـادلات والمسائـل الرياضيـه"
     cmd = event.text.split(" ", maxsplit=1)[1]
-    event = await edit_or_reply(event, "**    ⃟⁞⃟⟢ ╎جـارِ الحـل .. انتظـر**")
+    event = await edit_or_reply(event, "**    ⃟⁞⃟⟢ ╎جـارِ الحـل .. انتظـر**")
     old_stderr = sys.stderr
     old_stdout = sys.stdout
     redirected_output = sys.stdout = io.StringIO()
@@ -27,8 +26,9 @@ async def calculator(event):
     san = f"print({cmd})"
     try:
         await aexec(san, event)
-    except Exception:
-        exc = traceback.format_exc()
+    except Exception as e:
+        # بدل traceback الكامل نعرض فقط نوع الخطأ ورسالة مختصرة
+        exc = f"{e.__class__.__name__}: {str(e)}"
     stdout = redirected_output.getvalue()
     stderr = redirected_error.getvalue()
     sys.stdout = old_stdout
@@ -50,5 +50,4 @@ async def calculator(event):
 
 async def aexec(code, event):
     exec("async def __aexec(event): " + "".join(f"\n {l}" for l in code.split("\n")))
-
     return await locals()["__aexec"](event)
