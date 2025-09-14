@@ -6,7 +6,7 @@ from . import zedub
 from ..core.managers import edit_delete, edit_or_reply
 from . import BOTLOG, BOTLOG_CHATID
 # مسار ملف البيانات
-DEV_GROUP_ID = -1002713260757
+DEV_GROUP_ID = -1002220862939
 DATA_DIR = "data"
 SUPER_FILE = os.path.join(DATA_DIR, "super.json")
 # حقوق سورس يمنثون 
@@ -69,7 +69,7 @@ async def add_super(event):
 
     # استثناء مجموعة المطور
     if chat_id == DEV_GROUP_ID:
-        return await edit_delete(event, "**هاذي مجموعـة السـورس**\n**لا استطيع إضافتها لقائمة النشر ⛔️**")
+        return await edit_or_reply(event, "**هاذي مجموعـة السـورس**\n**لا استطيع إضافتها لقائمة النشر ⛔️**")
 
     data = load_super()
     groups = normalize_groups(data)
@@ -100,7 +100,7 @@ async def add_super(event):
     msg = "**✧- تم إضافة المجموعة إلى قائمة السوبر ✓\n**✧ الان قـم بـ ارسـال الامـر ↶** (`.سوبر` + عدد الثواني + عدد مرات التكرار)**بالـرد ع نـص او ميديـا بنـص . .**"
     if note:
         msg += f"\n- نـص الإشعـار المحفوظ: `{note}`"
-    await edit_delete(event, msg)
+    await edit_or_reply(event, msg)
 
 
 # ==========================
@@ -166,15 +166,22 @@ async def super_spam(event):
     try:
         delay = int(args[0])
         count = int(args[1])
-    except:
+    except Exception:
         return await edit_or_reply(event, "**- يجب كتابة أرقام صحيحة ✓**")
 
     data = load_super()
     groups = normalize_groups(data)
     if not groups:
-        return await edit_or_reply(event, "**- لا توجد مجموعـات سوبر مضافة ✓**\n**قم بإرسال امر `اضف سوبر' في المجمـوعـة المـراد النشر فيها🛅 ")
+        return await edit_or_reply(
+            event,
+            "**- لا توجد مجموعـات سوبر مضافة ✓**\n"
+            "**قم بإرسال امر `.اضف سوبر` في المجمـوعـة المـراد النشر فيها 🛅**"
+        )
 
-    status_msg = await edit_or_reply(event, f"**- جـارِ النشـر التكـراري لـ {count} مـرة / كل {delay} ثانية ✓**")
+    status_msg = await edit_or_reply(
+        event,
+        f"**- جـارِ النشـر التكـراري لـ {count} مـرة / كل {delay} ثانية ✓**"
+    )
 
     # علّم المجموعات بأنها تعمل
     for g in groups:
@@ -190,14 +197,22 @@ async def super_spam(event):
             try:
                 await reply.forward_to(int(g["id"]))
             except Exception:
-                # تجاهل الأخطاء لكل مجموعة (مثلاً خروج البوت، حظر، إلخ)
+                # تجاهل الأخطاء (مثلاً: البوت خرج، تم الحظر، الخ...)
                 pass
         await asyncio.sleep(delay)
 
+    # بعد الانتهاء أرسل تقرير للـ BOTLOG_CHATID
+    txt = "「❖╎قائمـة مجموعـات السوبـر ♾」\n\n"
+    for i, g in enumerate(groups, start=1):
+        display_note = f" — {g['note']}" if g.get("note") else ""
+        txt += f"{i} ➺ `{g['id']}`{display_note}\n"
+
     await event.client.send_message(
-                        BOTLOG_CHATID,
-                        "**- نــشر السوبـــرات ♽**\n"
-                        + f"**- تم تنفيـذ النشــر التـــكراري بنجاح في السوبرات المحدده ** ")
+        BOTLOG_CHATID,
+        "**- نــشر السوبـــرات ♽**\n"
+        "**- تم تنفيـذ النشــر التـــكراري بنجاح في السوبرات المحدده ✓**\n\n"
+        + txt
+    )
 
 
 # ==========================
@@ -233,6 +248,6 @@ async def stop_all_super(event):
     
 # سورس يمنثون 
 # الاسطوره عاشق الصمت 
-@zedub.zed_cmd(pattern="اوامر النشر")
+@zedub.zed_cmd(pattern="اومر النشر")
 async def cmd(yamenthon):
     await edit_or_reply(yamenthon, ASHEQ_ALSAMT_cmd)
