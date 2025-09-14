@@ -248,6 +248,6 @@ async def stop_all_super(event):
     
 # سورس يمنثون 
 # الاسطوره عاشق الصمت 
-@zedub.zed_cmd(pattern="اومر النشر")
+@zedub.zed_cmd(pattern="اوامر النشر")
 async def cmd(yamenthon):
     await edit_or_reply(yamenthon, ASHEQ_ALSAMT_cmd)
