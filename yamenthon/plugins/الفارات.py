@@ -256,17 +256,7 @@ async def variable(event):
         else:
             addgvar(variable, vinfo)
             await zed.edit("**✧ تم اضافـة {} بنجـاح ☑️**\n**✧ اليـوزرات المضـافة** \n {} \n\n**✧ الان قـم بـ ارسـال الامـر ↶** `.زاجل` **بالـرد ع نـص او ميديـا بنـص . .**".format(input_str, vinfo))
-    elif input_str == "سوبر" or input_str == "قائمة السوبر" or input_str == "قائمه السوبر" or input_str == "السوبرات" or input_str == "السوبر":
-        variable = "Super_Id"
-        await asyncio.sleep(1.5)
-        if not vinfo.startswith("-100"):
-            return await zed.edit("**✧ خطـأ .. قم بالـرد ع ارقـام ايديات المجموعات التي تبدأ ب 100- فقـط ؟!**\n**✧ قم بالذهاب لمجموعات السوبر التي تريد النشر فيها وكتابة الامر (.الايدي) ثم خذ ايدي المجموعة وهكذا لبقية المجموعات**")
-        if gvarstatus("Super_Id") is None:
-            addgvar(variable, vinfo)
-            await zed.edit("**✧ تم اضافـة {} بنجـاح ☑️**\n**✧ الايديات المضـافة** \n {} \n\n**✧ الان قـم بـ ارسـال الامـر ↶** (`.سوبر` + عدد الثواني + عدد مرات التكرار)**بالـرد ع نـص او ميديـا بنـص . .**".format(input_str, vinfo))
-        else:
-            addgvar(variable, vinfo)
-            await zed.edit("**✧ تم تغييـر {} بنجـاح ☑️**\n**✧ الايديات المضـافة** \n {} \n\n**✧ الان قـم بـ ارسـال الامـر ↶** (`.سوبر` + عدد الثواني + عدد مرات التكرار)**بالـرد ع نـص او ميديـا بنـص . .**".format(input_str, vinfo))
+    
     elif input_str == "بوت التجميع" or input_str == "بوت النقاط" or input_str == "النجميع" or input_str == "النقاط":
         variable = "Z_Point"
         await asyncio.sleep(1.5)
