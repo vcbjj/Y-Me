@@ -21,7 +21,7 @@ def save_super(data):
 
 
 # إضافة مجموعة
-@zedub.zed_cmd(pattern="اضف سوبر$")
+@zedub.zed_cmd(pattern="ضع سوبر$")
 async def add_super(event):
     data = load_super()
     chat_id = event.chat_id
