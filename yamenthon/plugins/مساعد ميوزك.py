@@ -32,8 +32,8 @@ async def check_telethon_session(session_string):
     try:
         client = TelegramClient(
             StringSession(session_string),
-            int(config.APP_ID),
-            config.API_HASH
+            int(Config.APP_ID),
+            Config.API_HASH
         )
         await client.connect()
         if not await client.is_user_authorized():
