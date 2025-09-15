@@ -1,4 +1,7 @@
 telethon==1.40.0
+youtube-search
+gTTS
+pytgcalls
 
 
 
