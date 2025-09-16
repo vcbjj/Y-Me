@@ -2,6 +2,7 @@ import re, os
 from . import zedub
 from ..core.managers import edit_or_reply
 from telethon import events
+plugin_category = "الحساب"
 
 @zedub.zed_cmd(
     pattern=r"جلب (.+)",
