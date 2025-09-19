@@ -64,9 +64,20 @@ async def get_cast(casttype, movie):
 #________الاسطوره عاشق الصمت ____
 
 
-async def translate(text, lan="en"):
+# دالة translate جديدة متوافقة مع الوسيطات القديمة (lang_tgt)
+async def translate(text, lang_tgt="en", lan=None):
+    """
+    يقبل إما lang_tgt='en' أو lan='en'.
+    يستخدم asyncio.to_thread لتشغيل دالة الترجمة المتزامنة في ثريد
+    حتى لا يوقف event loop.
+    """
+    target = lan or lang_tgt or "en"
     try:
-        result = GoogleTranslator(source="auto", target=lan).translate(text)
+        # GoogleTranslator.translate هي دالة مزامنة -> نقوم بتشغيلها في thread
+        result = await asyncio.to_thread(
+            GoogleTranslator(source="auto", target=target).translate,
+            text
+        )
         return result
     except Exception as er:
         return f"حدث خطأ \n{er}"
