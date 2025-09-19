@@ -2,7 +2,7 @@ from asyncio import sleep
 import requests
 import json
 import os
-from ..helpers.functions import getTranslate
+from ..helpers.functions import translate
 from . import zedub
 from telethon import events, types
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
@@ -40,7 +40,7 @@ langs = {
 
 async def gtrans(text, lan):
     try:
-        response = getTranslate(text, lang_tgt=lan)
+        response = translate(text, lang_tgt=lan)
         if response == 400:
             return Flase
     except Exception as er:
@@ -60,7 +60,7 @@ async def Reda(event):
     pattern="ترجمة ([\s\S]*)",
     command=("ترجمة", "tools"),
     info={
-        "header": "To getTranslate the text to required language.",
+        "header": "To translate the text to required language.",
         "note": "For langugage codes check [this link](https://bit.ly/2SRQ6WU)",
         "usage": [
             "{tr}tl <language code> ; <text>",
@@ -70,7 +70,7 @@ async def Reda(event):
     },
 )
 async def _(event):
-    "To getTranslate the text."
+    "To translate the text."
     input_str = event.pattern_match.group(1)
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
