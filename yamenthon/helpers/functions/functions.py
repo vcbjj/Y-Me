@@ -67,26 +67,20 @@ import json
 
 def translate(*args, **kwargs):
     """
-    Replacement لدالة الترجمة القديمة
-    تعمل بنفس التوقيع (translate(*args, **kwargs))
-    وتعيد النص المترجم كـ string.
+    Replacement لدالة الترجمة القديمة بنفس التوقيع
+    translate(*args, **kwargs)  -> string
     """
-    # تحديد النص واللغات من نفس وسائطك القديمة
-    # كان _package_rpc(*args, **kwargs) يولّد payload,
-    # هنا نستخلص ببساطة:
+    # النص واللغات مثل السابق
     text = ""
     src = "auto"
     dest = "en"
 
     if args:
-        # في أغلب الأكواد القديمة كان args[0] هو النص
         text = args[0]
-    text = kwargs.get("q", text)
-    text = kwargs.get("text", text)
+    text = kwargs.get("q", kwargs.get("text", text))
     src  = kwargs.get("sl", kwargs.get("src", src))
     dest = kwargs.get("tl", kwargs.get("dest", kwargs.get("target", dest)))
 
-    # واجهة Google Translate الرسمية غير الموثقة
     url = "https://translate.googleapis.com/translate_a/single"
     params = {
         "client": "gtx",
@@ -95,7 +89,6 @@ def translate(*args, **kwargs):
         "dt": "t",
         "q": text,
     }
-
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -104,17 +97,30 @@ def translate(*args, **kwargs):
         )
     }
 
-    r = requests.get(url, params=params, headers=headers, timeout=10)
-    r.raise_for_status()
+    try:
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        r.raise_for_status()
+        data = r.json()
 
-    # نفس أسلوب التفكيك القديم: دمج جميع المقاطع في نص واحد
-    data = r.json()
-    translated = ""
-    if isinstance(data, list) and data:
-        for seg in data[0]:
-            if seg and len(seg) > 0 and seg[0]:
-                translated += seg[0]
-    return translated
+        # بعض الاستجابات تكون بشكل dict إذا فُعلت DJ، نتأكد من الشكل
+        translated = ""
+        if isinstance(data, list) and data:
+            # الشكل التقليدي [[["translated","original",...], ...], ...]
+            for seg in data[0]:
+                if seg and isinstance(seg, list) and seg[0]:
+                    translated += seg[0]
+        elif isinstance(data, dict) and "sentences" in data:
+            for s in data["sentences"]:
+                if s.get("trans"):
+                    translated += s["trans"]
+
+        # لو فشل كل شيء نرجع النص الأصلي بدل نقطة
+        if not translated.strip():
+            translated = text
+        return translated
+    except Exception as e:
+        # في حال أي خطأ نرجع النص الأصلي بدل نقطة
+        return text
 
 def _get_value(stri):
     try:
