@@ -62,43 +62,21 @@ async def get_cast(casttype, movie):
 
 #________الاسطوره عاشق الصمت ____
 
-def _package_rpc(text, lang_tgt="en", lang_src="auto"):
-    """تجهيز البايلود اللي يُرسل لـ Google API القديم"""
-    rpc = [[[text, lang_src, lang_tgt, True], [1]]]
-    data = json.dumps(rpc, separators=(",", ":"))
-    return {
-        "f.req": json.dumps([None, data], separators=(",", ":"))
-    }
-
-def translate(text, lang_tgt="en", lang_src="auto"):
-    headers = {
-        "Referer": "https://translate.google.co.in",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/47.0.2526.106 Safari/537.36",
-        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-    }
-    x = requests.post(
-        "https://translate.google.co.in/_/TranslateWebserverUi/data/batchexecute",
-        headers=headers,
-        data=_package_rpc(text, lang_tgt=lang_tgt, lang_src=lang_src),
-    ).text
-    response = ""
+def translate(text, lang_tgt="en"):
     try:
-        data = json.loads(json.loads(x[4:])[0][2])[1][0][0]
-        subind = data[-2] if data[-2] else data[-1]
-        for i in subind:
-            response += i[0]
+        url = "https://translate.googleapis.com/translate_a/single"
+        params = {
+            "client": "gtx",
+            "sl": "auto",
+            "tl": lang_tgt,
+            "dt": "t",
+            "q": text,
+        }
+        r = requests.get(url, params=params)
+        r.raise_for_status()  # يتأكد من نجاح الطلب
+        return r.json()[0][0][0]
     except Exception as e:
-        response = f"خطأ أثناء الترجمة: {e}"
-    return response
-
-def _get_value(stri):
-    try:
-        value = eval(stri.strip())
-    except Exception:
-        value = stri.strip()
-    return value
+        return f"خطأ أثناء الترجمة: {e}"
 
 #_______###_______
 
