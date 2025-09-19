@@ -1,4 +1,5 @@
 import requests, json
+from googletrans import Translator
 import asyncio
 import os
 import zipfile
@@ -62,72 +63,16 @@ async def get_cast(casttype, movie):
 
 #________الاسطوره عاشق الصمت ____
 
-import requests
-import json
 
-def translate(*args, **kwargs):
-    """
-    Replacement لدالة الترجمة القديمة بنفس التوقيع
-    translate(*args, **kwargs)  -> string
-    """
-    # النص واللغات مثل السابق
-    text = ""
-    src = "auto"
-    dest = "en"
+translator = Translator()
 
-    if args:
-        text = args[0]
-    text = kwargs.get("q", kwargs.get("text", text))
-    src  = kwargs.get("sl", kwargs.get("src", src))
-    dest = kwargs.get("tl", kwargs.get("dest", kwargs.get("target", dest)))
-
-    url = "https://translate.googleapis.com/translate_a/single"
-    params = {
-        "client": "gtx",
-        "sl": src,
-        "tl": dest,
-        "dt": "t",
-        "q": text,
-    }
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/122.0 Safari/537.36"
-        )
-    }
-
+async def translate(text, lan):
     try:
-        r = requests.get(url, params=params, headers=headers, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+        result = translator.translate(text, dest=lan)
+        return result.text
+    except Exception as er:
+        return f"حدث خطأ \n{er}"
 
-        # بعض الاستجابات تكون بشكل dict إذا فُعلت DJ، نتأكد من الشكل
-        translated = ""
-        if isinstance(data, list) and data:
-            # الشكل التقليدي [[["translated","original",...], ...], ...]
-            for seg in data[0]:
-                if seg and isinstance(seg, list) and seg[0]:
-                    translated += seg[0]
-        elif isinstance(data, dict) and "sentences" in data:
-            for s in data["sentences"]:
-                if s.get("trans"):
-                    translated += s["trans"]
-
-        # لو فشل كل شيء نرجع النص الأصلي بدل نقطة
-        if not translated.strip():
-            translated = text
-        return translated
-    except Exception as e:
-        # في حال أي خطأ نرجع النص الأصلي بدل نقطة
-        return text
-
-def _get_value(stri):
-    try:
-        value = eval(stri.strip())
-    except Exception:
-        value = stri.strip()
-    return value
 
 #_______###_______
 
