@@ -59,8 +59,17 @@ async def get_cast(casttype, movie):
         mov_casttype += "Not Data"
     return mov_casttype
 
+#________الاسطوره عاشق الصمت ____
 
-def translate(*args, **kwargs):
+def _package_rpc(text, lang_tgt="en", lang_src="auto"):
+    """تجهيز البايلود اللي يُرسل لـ Google API القديم"""
+    rpc = [[[text, lang_src, lang_tgt, True], [1]]]
+    data = json.dumps(rpc, separators=(",", ":"))
+    return {
+        "f.req": json.dumps([None, data], separators=(",", ":"))
+    }
+
+def translate(text, lang_tgt="en", lang_src="auto"):
     headers = {
         "Referer": "https://translate.google.co.in",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) "
@@ -71,23 +80,26 @@ def translate(*args, **kwargs):
     x = requests.post(
         "https://translate.google.co.in/_/TranslateWebserverUi/data/batchexecute",
         headers=headers,
-        data=_package_rpc(*args, **kwargs),
+        data=_package_rpc(text, lang_tgt=lang_tgt, lang_src=lang_src),
     ).text
     response = ""
-    data = json.loads(json.loads(x[4:])[0][2])[1][0][0]
-    subind = data[-2]
-    if not subind:
-        subind = data[-1]
-    for i in subind:
-        response += i[0]
+    try:
+        data = json.loads(json.loads(x[4:])[0][2])[1][0][0]
+        subind = data[-2] if data[-2] else data[-1]
+        for i in subind:
+            response += i[0]
+    except Exception as e:
+        response = f"خطأ أثناء الترجمة: {e}"
     return response
 
 def _get_value(stri):
     try:
         value = eval(stri.strip())
-    except Exception as er:
+    except Exception:
         value = stri.strip()
     return value
+
+#_______###_______
 
 async def get_moviecollections(movie):
     result = ""
