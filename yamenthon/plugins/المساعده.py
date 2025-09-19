@@ -66,6 +66,9 @@ if Config.TG_BOT_USERNAME is not None and tgbot is not None:
                     Button.inline("السوبـرات 🧿", data="superrrr"),
                     Button.inline("التجميـع 🎰", data="pointrrr"),
                 ],
+                [
+                    Button.inline("🌟 اوامــر 𝐕𝐈𝐏 🌟", data="asheqalsamt"),
+                ],
             ]
             result = builder.article(
                 title="zedub",
@@ -170,6 +173,9 @@ async def _(event):
             Button.inline("السوبـرات 🧿", data="superrrr"),
             Button.inline("التجميـع 🎰", data="pointrrr"),
         ],
+        [
+                    Button.inline("🌟 اوامــر 𝐕𝐈𝐏 🌟", data="asheqalsamt"),
+                ],
     ]
     await event.edit(HELP, buttons=butze, link_preview=False)
 
@@ -4909,3 +4915,37 @@ async def _(event):
             [Button.inline("رجوع", data="toolzed")],
         ],
     link_preview=False)
+
+@zedub.tgbot.on(CallbackQuery(data=re.compile(rb"asheqalsamt")))
+@check_owner
+async def zed_help(event):
+    zelzal = "⤶ عـذراً عـزيـزي 🤷🏻‍♀\n⤶ هـذه اللوحه لا تشتغل في الخاص\n⤶ لـ إظهـار لوحـة المسـاعـدة 👇\n\n⤶ ارســل (.مساعده) في اي مجمـوعـه"
+    try:
+        await event.edit(
+            "[ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - اوامــر 𝐕𝐈𝐏🌟](t.me/YamenThon) .\n\n**「❖╎اليك عـزيـزي شـࢪوحـات اوامـر 𝐕𝐈𝐏🌟 حصريا على سورس يمنثون :**\n**⪼ التحــديثات مستمره وكــل فتــره يتــم إضــافه اوامـــر جــديده ✓📥** \n\n",
+            buttons=[
+                
+                [
+                    Button.inline("المحتـوى المقيــد 🛡", data="asheqvip"),
+                    
+                    Button.inline("بحث", data="songzed"),
+                ],
+            ],
+        link_preview=False)
+    except Exception:
+        await event.answer(zelzal, cache_time=0, alert=True)
+
+@zedub.tgbot.on(CallbackQuery(data=re.compile(rb"asheqvip")))
+@check_owner
+async def _(event):
+    await event.edit(
+        """[ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - اوامــر المحتـوى المقيــد 🛡](t.me/YamenThon) .
+
+⚉ `.جلب`
+**⪼ الامـر + رابـط الرسالة استخــدام الامـر بدون علامـة +**
+
+**وضيفة امـر جلب يمكنــك من جلب اي محتواى حتى لــو كانــت القنــاه او المجــموعه مقيــده الحفــظ و التحــويل** """,
+        buttons=[
+            [Button.inline("ᯓ★ رجـــوع", data="asheqalsamt")],
+        ],
+    link_preview=False)        
