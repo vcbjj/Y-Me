@@ -1,5 +1,5 @@
 import requests, json
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 import asyncio
 import os
 import zipfile
@@ -64,12 +64,10 @@ async def get_cast(casttype, movie):
 #________الاسطوره عاشق الصمت ____
 
 
-translator = Translator()
-
-async def translate(text, lan):
+async def translate(text, lan="en"):
     try:
-        result = translator.translate(text, dest=lan)
-        return result.text
+        result = GoogleTranslator(source="auto", target=lan).translate(text)
+        return result
     except Exception as er:
         return f"حدث خطأ \n{er}"
 
