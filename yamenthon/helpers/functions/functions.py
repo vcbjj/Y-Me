@@ -62,21 +62,66 @@ async def get_cast(casttype, movie):
 
 #________الاسطوره عاشق الصمت ____
 
-def translate(text, lang_tgt="en"):
+import requests
+import json
+
+def translate(*args, **kwargs):
+    """
+    Replacement لدالة الترجمة القديمة
+    تعمل بنفس التوقيع (translate(*args, **kwargs))
+    وتعيد النص المترجم كـ string.
+    """
+    # تحديد النص واللغات من نفس وسائطك القديمة
+    # كان _package_rpc(*args, **kwargs) يولّد payload,
+    # هنا نستخلص ببساطة:
+    text = ""
+    src = "auto"
+    dest = "en"
+
+    if args:
+        # في أغلب الأكواد القديمة كان args[0] هو النص
+        text = args[0]
+    text = kwargs.get("q", text)
+    text = kwargs.get("text", text)
+    src  = kwargs.get("sl", kwargs.get("src", src))
+    dest = kwargs.get("tl", kwargs.get("dest", kwargs.get("target", dest)))
+
+    # واجهة Google Translate الرسمية غير الموثقة
+    url = "https://translate.googleapis.com/translate_a/single"
+    params = {
+        "client": "gtx",
+        "sl": src,
+        "tl": dest,
+        "dt": "t",
+        "q": text,
+    }
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0 Safari/537.36"
+        )
+    }
+
+    r = requests.get(url, params=params, headers=headers, timeout=10)
+    r.raise_for_status()
+
+    # نفس أسلوب التفكيك القديم: دمج جميع المقاطع في نص واحد
+    data = r.json()
+    translated = ""
+    if isinstance(data, list) and data:
+        for seg in data[0]:
+            if seg and len(seg) > 0 and seg[0]:
+                translated += seg[0]
+    return translated
+
+def _get_value(stri):
     try:
-        url = "https://translate.googleapis.com/translate_a/single"
-        params = {
-            "client": "gtx",
-            "sl": "auto",
-            "tl": lang_tgt,
-            "dt": "t",
-            "q": text,
-        }
-        r = requests.get(url, params=params)
-        r.raise_for_status()  # يتأكد من نجاح الطلب
-        return r.json()[0][0][0]
-    except Exception as e:
-        return f"خطأ أثناء الترجمة: {e}"
+        value = eval(stri.strip())
+    except Exception:
+        value = stri.strip()
+    return value
 
 #_______###_______
 
