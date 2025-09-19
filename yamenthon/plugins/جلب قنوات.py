@@ -1,26 +1,27 @@
-# ملف جديد داخل plugins مثلاً : save_media.py
+# حقوق سورس يمنثون//تاخذ الكود اذكر المصدر لا تخمط الخقوق
+#الاسطوره عاشق الصمت @T_A_Tl 
 
 import os
 from telethon import events
 from telethon.tl.types import MessageService, MessageActionChannelMigrateFrom
 
-from .. import zedub  # هذا هو الكلاينت الأساسي
+from .. import zedub  #الاسطوره عاشق الصمت @T_A_Tl
 from ..core.logger import logging
 from ..Config import Config
 from ..core.managers import edit_or_reply
 
 LOGS = logging.getLogger(__name__)
 
-cancel_process = False  # فلاج لإيقاف العملية
+cancel_process = False  
 
-# أمر إلغاء الحفظ
+
 @zedub.zed_cmd(
-    pattern="الغاء سيف$",
-    command=("الغاء سيف", "tools"),
+    pattern="الغاء الحفظ$",
+    command=("الغاء الحفظ", "tools"),
     info={
         "header": "إلغاء عملية حفظ الميديا.",
         "description": "يقوم بإلغاء العملية الجارية لحفظ الميديا من القنوات.",
-        "usage": "{tr}الغاء سيف",
+        "usage": "{tr}الغاء الحفظ",
     },
 )
 async def _(event):
@@ -29,7 +30,7 @@ async def _(event):
     await edit_or_reply(event, "✔️ تم إلغاء عملية حفظ الميديا.")
 
 
-# متابعة الأحداث (مثلاً لو القناة ترحّلت)
+#الاسطوره عاشق الصمت @T_A_Tl
 @zedub.on(events.NewMessage(incoming=True))
 async def check_cancel(event):
     global cancel_process
@@ -39,19 +40,19 @@ async def check_cancel(event):
         cancel_process = True
 
 
-# أمر الحفظ
+
 @zedub.zed_cmd(
-    pattern="سيف(?: |$)(.*) (\d+)",
-    command=("سيف", "tools"),
+    pattern="حفظ(?: |$)(.*) (\d+)",
+    command=("حفظ", "tools"),
     info={
         "header": "حفظ الميديا من القنوات ذات تقييد المحتوى.",
         "description": "يحفظ الصور والفيديوهات والملفات من القنوات ذات تقييد المحتوى ويرسلها للخاص.",
-        "usage": "{tr}سيف يوزر_القناة العدد",
+        "usage": "{tr}حفظ يوزر_القناة العدد",
     },
 )
 async def _(event):
     global cancel_process
-    cancel_process = False  # إعادة ضبط الفلاج
+    cancel_process = False  #الاسطوره عاشق الصمت @T_A_Tl
 
     channel_username = event.pattern_match.group(1)
     limit = int(event.pattern_match.group(2))
@@ -94,7 +95,7 @@ async def _(event):
                 await zedub.send_file("me", file=file_path)
                 os.remove(file_path)
 
-            # تحقق من الإلغاء
+            #الاسطوره عاشق الصمت @T_A_Tl
             if cancel_process:
                 await status.edit("⚠️ تم إلغاء عملية حفظ الميديا.")
                 cancel_process = False
