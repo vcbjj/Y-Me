@@ -10,22 +10,30 @@ from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 from ..core.managers import edit_delete, edit_or_reply
 from . import deEmojify, reply_id
 
+# عدلت بعض الأكواد الخاطئة هنا ووضعت بعض الأسماء الشائعة
 langs = {
     'عربي': 'ar',
+    'انجليزي': 'en',
+    'انكليزي': 'en',
+    'انجليزية': 'en',
     'فارسي': 'fa',
+    'فارسية': 'fa',
     'بلغاري': 'bg',
-    'صيني مبسط': 'zh',
-    'صيني تقليدي ': 'zh-TW',
+    'صيني مبسط': 'zh-CN',
+    'صيني تقليدي': 'zh-TW',
+    'صيني': 'zh-CN',
     'كرواتي': 'hr',
     'دنماركي': 'da',
     'الماني': 'de',
-    'انجليزي': 'en',
-    'فنلندي': 'fil',
+    'ألماني': 'de',
+    'فنلندي': 'fi',    # صححتها
+    'فلبيني': 'fil',
     'فرنسي': 'fr',
     'يوناني': 'el',
     'هنغاري': 'hu',
     'كوري': 'ko',
     'ايطالي': 'it',
+    'ايطاليه': 'it',
     'ياباني': 'ja',
     'نرويجي': 'no',
     'بولندي': 'pl',
@@ -33,35 +41,29 @@ langs = {
     'روسي': 'ru',
     'سلوفيني': 'sl',
     'اسباني': 'es',
+    'اسبانية': 'es',
     'سويدي': 'sv',
     'تركي': 'tr',
-    'هندي': 'ur',
+    'هندي': 'hi',      # صححتها (hi للـ Hindi)
     'كردي': 'ku',
+    # ممكن تضيف المزيد من الأسماء/المرادفات هنا
 }
-
 
 async def gtrans(text, lan_code):
     try:
-        response = GoogleTranslator(source="auto", target=lan_code).translate(text)
-        return response
+        # قبول رموز طويلة او قصيرة (GoogleTranslator يتعامل مع معظم الرموز)
+        translated = GoogleTranslator(source="auto", target=lan_code).translate(text)
+        return translated
     except Exception as er:
-        return f"حدث خطأ \n{er}"
-
-@zedub.zed_cmd(pattern="event")
-async def Reda(event):
-    if event.reply_to_msg_id:
-        m = await event.get_reply_message()
-        with open("reply.txt", "w") as file:
-                file.write(str(m))
-        await event.client.send_file(event.chat_id, "reply.txt")
-        os.remove("reply.txt")
+        # ارجع الاستثناء كنص حتى نقدر نشوف السبب عند الاختبار
+        return f"حدث خطأ أثناء الترجمة: {er}"
 
 @zedub.zed_cmd(
     pattern="ترجمة ([\s\S]*)",
     command=("ترجمة", "tools"),
     info={
         "header": "To translate the text to required language.",
-        "note": "For language codes check [this link](https://bit.ly/2SRQ6WU)",
+        "note": "اكتب اسم اللغة بالعربي أو رمزها (مثال: ترجمة انجليزي أو ترجمة en).",
         "usage": [
             "{tr}ترجمة <اللغة> ; <النص>",
             "{tr}ترجمة <اللغة> (بالرد على نص)",
@@ -70,77 +72,49 @@ async def Reda(event):
     },
 )
 async def _(event):
-    "To translate the text."
-    input_str = event.pattern_match.group(1)
+    input_str = event.pattern_match.group(1).strip()
 
+    # إذا الأمر كان بالرد
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
-        text = previous_message.message
+        # حاول الحصول على النص من أكثر من حقل (حالة الميديا)
+        text = previous_message.message or previous_message.text or ""
         lan = input_str or "انجليزي"
     elif ";" in input_str:
-        lan, text = input_str.split(";")
+        lan, text = input_str.split(";", 1)
     else:
         return await edit_delete(
-            event, "**˖✧˚ قم بالرد على الرسالة للترجمة **", time=5
+            event, "**˖✧˚ قم بالرد على الرسالة للترجمة أو استخدم ; للفصل**", time=5
         )
 
     text = deEmojify(text.strip())
     lan = lan.strip()
 
-    # ✅ تحقق من القاموس
-    if lan not in langs:
-        return await edit_delete(event, f"**˖✧˚ اللغة {lan} غير مدعومة!**", time=5)
+    # إذا المستخدم أدخل رمز لغة مختصر مثل 'en' أو 'ru'، اسمقته مباشرة
+    lan_lower = lan.lower()
+    if lan_lower in langs:
+        lan_code = langs[lan_lower]
+    elif lan in langs:
+        lan_code = langs[lan]
+    else:
+        # قبول رموز اللغة المباشرة (مثل "en", "ru", "ar", "zh-CN")
+        # نتأكد أن المدخل عبارة عن رمز مكون من 1-5 أحرف / شرطات
+        import re
+        if re.fullmatch(r"[A-Za-z\-]{1,10}", lan):
+            lan_code = lan
+        else:
+            return await edit_delete(event, f"**˖✧˚ اللغة '{lan}' غير مدعومة!**", time=5)
 
-    lan_code = langs[lan]
-
-    if len(text) < 2:
-        return await edit_delete(event, "**˖✧˚قم بكتابة ما تريد ترجمته!**")
+    if not text or len(text) < 1:
+        return await edit_delete(event, "**˖✧˚قم بكتابة ما تريد ترجمته!**", time=5)
 
     try:
         trans = await gtrans(text, lan_code)
-        if not trans:
-            return await edit_delete(event, "**˖✧˚ تحقق من رمز اللغة !, لا يوجد هكذا لغة**")      
+        # لو كانت النتيجة نص خطأ ناتج عن Exception قم بعرضه للمساعدة في التصحيح
+        if isinstance(trans, str) and trans.startswith("حدث خطأ"):
+            return await edit_delete(event, f"**˖✧˚ {trans}**", time=6)
 
         output_str = f"**˖✧˚ تمت الترجمة الى {lan}**\n`{trans}`"
         await edit_or_reply(event, output_str)
     except Exception as exc:
         await edit_delete(event, f"**خطا:**⚠️⚠️ {exc}", time=5)
-
-@zedub.zed_cmd(pattern="(الترجمة الفورية|الترجمه الفوريه|ايقاف الترجمة|ايقاف الترجمه)")
-async def reda(event):
-    if gvarstatus("transnow"):
-        delgvar("transnow")
-        await edit_delete(event, "**˖✧︙ تم تعطيل الترجمه الفورية **")
-    else:
-        addgvar("transnow", "Reda") 
-        await edit_delete(event, "**˖✧︙ تم تفعيل الترجمه الفورية**")
-
-@zedub.zed_cmd(pattern="لغة الترجمة")
-async def Reda_is_Here(event):
-    t = event.text.replace(".لغة الترجمة", "")
-    t = t.replace(" ", "")
-    try:  
-        lang = langs[t]
-    except BaseException as er:
-        return await edit_delete(event, "**˖✧︙ !تأكد من قائمة اللغات. لا يوجد هكذا لغة**")
-    addgvar("translang", lang)
-    await edit_delete(event, f"**˖✧︙ تم تغير لغة الترجمة الى {lang} بنجاح ✓ **")
-
-# Reda
-@zedub.on(events.NewMessage(outgoing=True))
-async def reda(event):
-    if gvarstatus("transnow"):
-        text = event.raw_text.strip()
-        # تجاهل أوامر الترجمة نفسها
-        if text.startswith(".ترجمة") or text.startswith(".لغة الترجمة") or "ترجمة" in text:
-            return
-
-        if event.media or isinstance(event.media, types.MessageMediaDocument) or isinstance(event.media, types.MessageMediaInvoice):
-            return
-        else:
-            original_message = event.message.message
-            translated_message = await gtrans(
-                deEmojify(original_message.strip()),
-                gvarstatus("translang") or "en"
-            )
-            await event.message.edit(translated_message)
