@@ -100,4 +100,4 @@ async def auto_translate(event):
             # تعديل الرسالة الأصلية نفسها
             await event.edit(f" {translated}")
     except Exception as e:
-        await event.edit(f"⚠️ خطأ في الترجمة: ")
+        await event.reply(f"⚠️ خطأ في الترجمة: ")
