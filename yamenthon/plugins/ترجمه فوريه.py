@@ -72,7 +72,7 @@ async def disable_translate(event):
 
 
 # فلتر للرسائل العادية
-@zedub.on(events.NewMessage(incoming=True))
+@zedub.on(events.NewMessage)
 async def auto_translate(event):
     chat_id = str(event.chat_id)
 
@@ -80,12 +80,16 @@ async def auto_translate(event):
     if chat_id not in translate_data["enabled"]:
         return
 
+    # الترجمة فقط لرسائل صاحب البوت
+    if event.sender_id != zedub.uid:
+        return
+
     if not event.message.message or event.message.message.startswith("."):
         return
 
     text = event.message.message
 
-    # استثناء الإيموجي فقط
+    # استثناء الإيموجيات فقط
     if re.fullmatch(r"[\W_]+", text):
         return
 
@@ -94,6 +98,6 @@ async def auto_translate(event):
     try:
         translated = GoogleTranslator(source="auto", target=lang).translate(text)
         if translated and translated.strip() != text.strip():
-            await event.reply(f"🌍 {translated}")
+            await event.reply(f" {translated}")
     except Exception as e:
         await event.reply(f"⚠️ خطأ في الترجمة: {e}")
