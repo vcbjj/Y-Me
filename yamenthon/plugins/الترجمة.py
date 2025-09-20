@@ -121,9 +121,17 @@ async def Reda_is_Here(event):
 @zedub.on(events.NewMessage(outgoing=True))
 async def reda(event):
     if gvarstatus("transnow"):
+        text = event.raw_text.strip()
+        # تجاهل أوامر الترجمة نفسها
+        if text.startswith(".ترجمة") or text.startswith(".لغة الترجمة") or "ترجمة" in text:
+            return
+
         if event.media or isinstance(event.media, types.MessageMediaDocument) or isinstance(event.media, types.MessageMediaInvoice):
-            print ("YamenThon")
+            return
         else:
             original_message = event.message.message
-            translated_message = await gtrans(deEmojify(original_message.strip()), gvarstatus("translang") or "en")
+            translated_message = await gtrans(
+                deEmojify(original_message.strip()),
+                gvarstatus("translang") or "en"
+            )
             await event.message.edit(translated_message)
