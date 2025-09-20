@@ -61,41 +61,50 @@ async def Reda(event):
     command=("ترجمة", "tools"),
     info={
         "header": "To translate the text to required language.",
-        "note": "For langugage codes check [this link](https://bit.ly/2SRQ6WU)",
+        "note": "For language codes check [this link](https://bit.ly/2SRQ6WU)",
         "usage": [
-            "{tr}tl <language code> ; <text>",
-            "{tr}tl <language codes>",
+            "{tr}ترجمة <اللغة> ; <النص>",
+            "{tr}ترجمة <اللغة> (بالرد على نص)",
         ],
-        "examples": "{tr}tl te ; Catuserbot is one of the popular bot",
+        "examples": "{tr}ترجمة انجليزي ; اهلا بك",
     },
 )
 async def _(event):
     "To translate the text."
     input_str = event.pattern_match.group(1)
+
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
         text = previous_message.message
-        lan = input_str or "en"
+        lan = input_str or "انجليزي"
     elif ";" in input_str:
         lan, text = input_str.split(";")
     else:
         return await edit_delete(
             event, "**˖✧˚ قم بالرد على الرسالة للترجمة **", time=5
         )
+
     text = deEmojify(text.strip())
     lan = lan.strip()
+
+    # ✅ تحقق من القاموس
+    if lan not in langs:
+        return await edit_delete(event, f"**˖✧˚ اللغة {lan} غير مدعومة!**", time=5)
+
+    lan_code = langs[lan]
+
     if len(text) < 2:
         return await edit_delete(event, "**˖✧˚قم بكتابة ما تريد ترجمته!**")
+
     try:
-        trans = await gtrans(text, lan)
+        trans = await gtrans(text, lan_code)
         if not trans:
             return await edit_delete(event, "**˖✧˚ تحقق من رمز اللغة !, لا يوجد هكذا لغة**")      
-        output_str = f"**˖✧˚ تمت الترجمة من ar الى {lan}**\
-                \n`{trans}`"
+
+        output_str = f"**˖✧˚ تمت الترجمة الى {lan}**\n`{trans}`"
         await edit_or_reply(event, output_str)
     except Exception as exc:
-        await edit_delete(event, f"**خطا:**⚠️⚠️`", time=5)
-
+        await edit_delete(event, f"**خطا:**⚠️⚠️ {exc}", time=5)
 
 @zedub.zed_cmd(pattern="(الترجمة الفورية|الترجمه الفوريه|ايقاف الترجمة|ايقاف الترجمه)")
 async def reda(event):
