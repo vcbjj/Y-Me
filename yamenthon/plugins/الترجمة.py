@@ -108,13 +108,13 @@ async def _(event):
     if not text or len(text) < 1:
         return await edit_delete(event, "**˖✧˚قم بكتابة ما تريد ترجمته!**", time=5)
 
-    try:
-        trans = await gtrans(text, lan_code)
-        # لو كانت النتيجة نص خطأ ناتج عن Exception قم بعرضه للمساعدة في التصحيح
-        if isinstance(trans, str) and trans.startswith("حدث خطأ"):
-            return await edit_delete(event, f"**˖✧˚ {trans}**", time=6)
+try:
+    trans = GoogleTranslator(source="auto", target=lan_code).translate(text)
+    if not trans:
+        return await edit_delete(event, "**˖✧˚ الترجمة فشلت، جرب رمز لغة آخر**")      
 
-        output_str = f"**˖✧˚ تمت الترجمة الى {lan}**\n`{trans}`"
-        await edit_or_reply(event, output_str)
-    except Exception as exc:
-        await edit_delete(event, f"**خطا:**⚠️⚠️ {exc}", time=5)
+    output_str = f"**˖✧˚ تمت الترجمة الى {lan}**\n`{trans}`"
+    await edit_or_reply(event, output_str)
+
+except Exception as exc:
+    await edit_delete(event, f"**خطأ:**⚠️⚠️ {exc}", time=5)
