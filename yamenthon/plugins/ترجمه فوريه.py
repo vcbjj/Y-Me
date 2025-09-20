@@ -70,7 +70,6 @@ async def disable_translate(event):
     else:
         await edit_or_reply(event, "✧ الترجمة الفورية متوقفة بالفعل ❌")
 
-
 # فلتر للرسائل العادية
 @zedub.on(events.NewMessage)
 async def auto_translate(event):
@@ -98,6 +97,7 @@ async def auto_translate(event):
     try:
         translated = GoogleTranslator(source="auto", target=lang).translate(text)
         if translated and translated.strip() != text.strip():
-            await event.reply(f" {translated}")
+            # تعديل الرسالة الأصلية نفسها
+            await event.edit(f" {translated}")
     except Exception as e:
-        await event.reply(f"⚠️ خطأ في الترجمة: {e}")
+        await event.edit(f"⚠️ خطأ في الترجمة: ")
