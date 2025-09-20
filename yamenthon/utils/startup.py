@@ -274,11 +274,11 @@ async def mybot():
 
         try:
 
-            await bot.send_message("@BotFather", "/setinline")
-            await asyncio.sleep(1)
-            await bot.send_message("@BotFather", botname)
-            await asyncio.sleep(1)
-            await bot.send_message("@BotFather", "bot")
+            #await bot.send_message("@BotFather", "/setinline")
+            #await asyncio.sleep(1)
+            #await bot.send_message("@BotFather", botname)
+            #await asyncio.sleep(1)
+            #await bot.send_message("@BotFather", "bot")
             await asyncio.sleep(3)
             await bot.send_message("@BotFather", "/setname")
             await asyncio.sleep(1)
