@@ -10,10 +10,13 @@ from ..core.managers import edit_or_reply
 # ملف تخزين بيانات الترجمة
 TRANSLATE_FILE = "translate_settings.json"
 
-# تحميل البيانات
+# تحميل البيانات أو إنشاؤها إذا غير موجودة
 if os.path.exists(TRANSLATE_FILE):
-    with open(TRANSLATE_FILE, "r", encoding="utf-8") as f:
-        translate_data = json.load(f)
+    try:
+        with open(TRANSLATE_FILE, "r", encoding="utf-8") as f:
+            translate_data = json.load(f)
+    except Exception:
+        translate_data = {"chats": {}, "enabled": []}
 else:
     translate_data = {"chats": {}, "enabled": []}
 
@@ -23,65 +26,64 @@ def save_data():
         json.dump(translate_data, f, ensure_ascii=False, indent=2)
 
 
-# قاموس أسماء اللغات الشائعة
+# قاموس أسماء اللغات بالعربي -> رمز اللغة
 LANG_MAP = {
-    "انجليزي": "en",
-    "انجليزية": "en",
-    "انكليزي": "en",
-    "عربي": "ar",
-    "عربية": "ar",
-    "فرنسي": "fr",
-    "فرنسية": "fr",
-    "روسي": "ru",
-    "روسية": "ru",
-    "هندي": "hi",
-    "هندية": "hi",
-    "فارسي": "fa",
-    "فارسية": "fa",
-    "اسباني": "es",
-    "اسبانية": "es",
-    "تركي": "tr",
-    "تركية": "tr",
-    "الماني": "de",
-    "المانية": "de",
-    "صيني": "zh-cn",
-    "ياباني": "ja",
-    "كوري": "ko",
-    "برتغالي": "pt",
-    "ايطالي": "it",
-    "فرنسيه": "fr",  # أضفت صيغة إضافية لتسهيل الاستخدام
+    "انجليزي": "en", "انجليزية": "en", "انكليزي": "en",
+    "عربي": "ar", "عربية": "ar",
+    "فرنسي": "fr", "فرنسية": "fr", "فرنسيه": "fr",
+    "روسي": "ru", "روسية": "ru",
+    "هندي": "hi", "هندية": "hi",
+    "فارسي": "fa", "فارسية": "fa",
+    "اسباني": "es", "اسبانية": "es",
+    "تركي": "tr", "تركية": "tr",
+    "الماني": "de", "المانية": "de",
+    "صيني": "zh-cn", "ياباني": "ja", "كوري": "ko",
+    "برتغالي": "pt", "ايطالي": "it"
 }
 
-# أمر ضبط اللغة
-@zedub.zed_cmd(pattern="لغه الترجمه(?:\s+(.+))?")
+# اسم اللغة للعرض حسب رمزها (لجعل الرد أكثر ودّية)
+CODE_TO_NAME = {
+    "en": "انجليزي", "ar": "عربي", "fr": "فرنسي", "ru": "روسي",
+    "hi": "هندي", "fa": "فارسي", "es": "اسباني", "tr": "تركي",
+    "de": "الماني", "zh-cn": "صيني", "ja": "ياباني", "ko": "كوري",
+    "pt": "برتغالي", "it": "ايطالي"
+}
+
+
+# أمر ضبط اللغة: يقبل اسم اللغة بالعربي أو رمز اللغة مباشرة
+@zedub.zed_cmd(pattern="لغه الترجمه(?:\\s+(.+))?")
 async def set_lang(event):
-    lang_name = event.pattern_match.group(1)
+    lang_input = event.pattern_match.group(1)
     chat_id = str(event.chat_id)
 
-    if not lang_name:
-        langs = "، ".join(LANG_MAP.keys())
+    if not lang_input:
+        langs = "، ".join(sorted(LANG_MAP.keys()))
         return await edit_or_reply(
             event,
             f"✧ أرسل اسم اللغة التي تريد ضبطها.\nمثال:\n`.لغه الترجمه انجليزي`\n\nاللغات المدعومة:\n{langs}"
         )
 
-    # تحويل الاسم إلى رمز لغة
-    lang_name = lang_name.strip().lower()
-    lang_code = LANG_MAP.get(lang_name)
+    key = lang_input.strip().lower()
 
-    if not lang_code:
-        langs = "، ".join(LANG_MAP.keys())
+    # قبول الاسم بالعربي أو رمز اللغة
+    if key in LANG_MAP:
+        lang_code = LANG_MAP[key]
+    elif key in CODE_TO_NAME:
+        lang_code = key
+    else:
+        langs = "، ".join(sorted(LANG_MAP.keys()))
         return await edit_or_reply(
             event,
-            f"⚠️ لم أتعرف على اللغة **{lang_name}**.\nاللغات المدعومة:\n{langs}"
+            f"⚠️ لم أتعرف على اللغة **{lang_input}**.\nاللغات المدعومة:\n{langs}"
         )
 
-    # حفظ اللغة
     translate_data["chats"][chat_id] = lang_code
     save_data()
-    await edit_or_reply(event, f"✧ تم ضبط لغة الترجمة إلى **{lang_name}** ✅")
+    friendly = CODE_TO_NAME.get(lang_code, lang_code)
+    await edit_or_reply(event, f"✧ تم ضبط لغة الترجمة إلى **{friendly} ({lang_code})** ✅")
 
-# أمر تفعيل الترجمة
+
+# أمر تفعيل الترجمة — الآن يتحقق إذا كانت مفعلة مسبقًا
 @zedub.zed_cmd(pattern="تفعيل الترجمه$")
 async def enable_translate(event):
     chat_id = str(event.chat_id)
@@ -90,45 +92,55 @@ async def enable_translate(event):
     if not lang:
         return await edit_or_reply(
             event,
-            "✧ يجب أولاً ضبط لغة الترجمة باستخدام:\n`.لغه الترجمه <رمز_اللغة>`"
+            "✧ يجب أولاً ضبط لغة الترجمة في هذه الدردشة باستخدام:\n`.لغه الترجمه <اسم_اللغة>`"
         )
 
-    if chat_id not in translate_data["enabled"]:
-        translate_data["enabled"].append(chat_id)
-        save_data()
+    # تحقق إن كانت مفعلّة بالفعل في نفس الدردشة
+    if chat_id in translate_data.get("enabled", []):
+        friendly = CODE_TO_NAME.get(lang, lang)
+        return await edit_or_reply(
+            event,
+            f"⚠️ الترجمة الفورية مفعّلة مسبقًا في هذه الدردشة.\nاللغة الحالية: **{friendly} ({lang})**"
+        )
 
-    await edit_or_reply(event, f"✧ تم تفعيل الترجمة الفورية إلى **{lang}** في هذه الدردشة ✅")
+    # تفعيل للدردشة الحالية فقط
+    translate_data.setdefault("enabled", []).append(chat_id)
+    save_data()
+    friendly = CODE_TO_NAME.get(lang, lang)
+    await edit_or_reply(event, f"✧ تم تفعيل الترجمة الفورية إلى **{friendly} ({lang})** في هذه الدردشة ✅")
 
 
-# أمر إيقاف الترجمة
+# أمر إيقاف الترجمة (يعطل لكل الدردشات كما طلبت سابقًا)
 @zedub.zed_cmd(pattern="ايقاف الترجمه$")
 async def disable_translate(event):
-    if translate_data["enabled"]:
-        translate_data["enabled"].clear()
-        save_data()
-        await edit_or_reply(event, "✧ تم إيقاف الترجمة الفورية من جميع الدردشات ❌")
-    else:
-        await edit_or_reply(event, "✧ الترجمة الفورية متوقفة بالفعل ❌")
+    if not translate_data.get("enabled"):
+        return await edit_or_reply(event, "✧ الترجمة الفورية متوقفة بالفعل ❌")
 
-# فلتر للرسائل العادية
+    translate_data["enabled"].clear()
+    save_data()
+    await edit_or_reply(event, "✧ تم إيقاف الترجمة الفورية من جميع الدردشات ❌")
+
+
+# فلتر للرسائل العادية — يترجم رسائل صاحب السورس فقط ويعدلها بدل إرسال رد
 @zedub.on(events.NewMessage)
 async def auto_translate(event):
     chat_id = str(event.chat_id)
 
     # التأكد أن الترجمة مفعلة في هذه الدردشة
-    if chat_id not in translate_data["enabled"]:
+    if chat_id not in translate_data.get("enabled", []):
         return
 
-    # الترجمة فقط لرسائل صاحب البوت
-    if event.sender_id != zedub.uid:
+    # الترجمة فقط لرسائل صاحب البوت/السورس
+    if event.sender_id != getattr(zedub, "uid", None):
         return
 
+    # استثناء الأوامر والرسائل الفارغة
     if not event.message.message or event.message.message.startswith("."):
         return
 
     text = event.message.message
 
-    # استثناء الإيموجيات فقط
+    # استثناء الرسائل التي تتكون من رموز/إيموجي فقط
     if re.fullmatch(r"[\W_]+", text):
         return
 
@@ -137,7 +149,8 @@ async def auto_translate(event):
     try:
         translated = GoogleTranslator(source="auto", target=lang).translate(text)
         if translated and translated.strip() != text.strip():
-            # تعديل الرسالة الأصلية نفسها
-            await event.edit(f" {translated}")
+            # تعديل الرسالة الأصلية نفسها إلى النص المترجم
+            await event.edit(f"{translated}")
     except Exception as e:
-        await event.reply(f"⚠️ خطأ في الترجمة: ")
+        # لو فشلت الترجمة نخلي رسالة خطأ بسيطة (نعدل بدل أن نرد)
+        await event.edit(f"⚠️ خطأ في الترجمة: ")
