@@ -6,7 +6,7 @@ from deep_translator import GoogleTranslator
 
 from . import zedub
 from ..core.managers import edit_or_reply
-
+from . import mention 
 # ملف تخزين بيانات الترجمة
 TRANSLATE_FILE = "translate_settings.json"
 
@@ -60,7 +60,7 @@ async def set_lang(event):
         langs = "، ".join(sorted(LANG_MAP.keys()))
         return await edit_or_reply(
             event,
-            f"✧ أرسل اسم اللغة التي تريد ضبطها.\nمثال:\n`.لغه الترجمه انجليزي`\n\nاللغات المدعومة:\n{langs}"
+            f"✧ أرسل اسم اللغة التي تريد ضبطها.\nمثال:\n`.لغه الترجمه انجليزي`\nاللغات المدعومة:\n\n{langs}"
         )
 
     key = lang_input.strip().lower()
@@ -74,17 +74,17 @@ async def set_lang(event):
         langs = "، ".join(sorted(LANG_MAP.keys()))
         return await edit_or_reply(
             event,
-            f"⚠️ لم أتعرف على اللغة **{lang_input}**.\nاللغات المدعومة:\n{langs}"
+            f"⚠️ لم أتعرف على اللغة **{lang_input}**.\nاللغات المدعومة:\n\n{langs}"
         )
 
     translate_data["chats"][chat_id] = lang_code
     save_data()
     friendly = CODE_TO_NAME.get(lang_code, lang_code)
-    await edit_or_reply(event, f"✧ تم ضبط لغة الترجمة إلى **{friendly} ({lang_code})** ✅")
+    await edit_or_reply(event, f"**🫂┊ عــزيــزي المــالك** {mention}\n\n**✧ تم ضبط لغة الترجمة**\n**اللغة الحالية:** **{friendly} ({lang})**\n[𓆩 𝗦𝗼𝘂𝗿𝗰𝗲 𝗬𝗮𝗺𝗲𝗻𝗧𝗵𝗼𝗻 𓆪](https://t.me/YamenThon)\n𓍹ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ𓍻\n")
 
 
 # أمر تفعيل الترجمة — الآن يتحقق إذا كانت مفعلة مسبقًا
-@zedub.zed_cmd(pattern="تفعيل الترجمه$")
+@zedub.zed_cmd(pattern="(تفعيل الترجمه|تفعيل الترجمة)")
 async def enable_translate(event):
     chat_id = str(event.chat_id)
     lang = translate_data["chats"].get(chat_id)
@@ -100,25 +100,25 @@ async def enable_translate(event):
         friendly = CODE_TO_NAME.get(lang, lang)
         return await edit_or_reply(
             event,
-            f"⚠️ الترجمة الفورية مفعّلة مسبقًا في هذه الدردشة.\nاللغة الحالية: **{friendly} ({lang})**"
+            f"**🫂┊ عــزيــزي المــالك** {mention}\n\n** ⚠️┊  الترجمة الفورية مفعّلة مسبقًا في هذه الدردشة.**\n**اللغة الحالية:** **{friendly} ({lang})**\n**✧ حـالـة التـرجمة ← مــفعله 🟢**"
         )
 
     # تفعيل للدردشة الحالية فقط
     translate_data.setdefault("enabled", []).append(chat_id)
     save_data()
     friendly = CODE_TO_NAME.get(lang, lang)
-    await edit_or_reply(event, f"✧ تم تفعيل الترجمة الفورية إلى **{friendly} ({lang})** في هذه الدردشة ✅")
+    await edit_or_reply(event, f"[𓆩 𝗦𝗼𝘂𝗿𝗰𝗲 𝗬𝗮𝗺𝗲𝗻𝗧𝗵𝗼𝗻 𓆪](https://t.me/YamenThon)\n𓍹ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ𓍻\n\n**✧ تم تفعيل الترجمة الفورية ✓**\n**✧ لغــه الترجمه ← {friendly} ({lang})**\n**✧ حـالـة التـرجمة ← مــفعله 🟢**")
 
 
 # أمر إيقاف الترجمة (يعطل لكل الدردشات كما طلبت سابقًا)
-@zedub.zed_cmd(pattern="ايقاف الترجمه$")
+@zedub.zed_cmd(pattern="(ايقاف الترجمه|ايقاف الترجمة)")
 async def disable_translate(event):
     if not translate_data.get("enabled"):
         return await edit_or_reply(event, "✧ الترجمة الفورية متوقفة بالفعل ❌")
 
     translate_data["enabled"].clear()
     save_data()
-    await edit_or_reply(event, "✧ تم إيقاف الترجمة الفورية من جميع الدردشات ❌")
+    await edit_or_reply(event, f"[𓆩 𝗦𝗼𝘂𝗿𝗰𝗲 𝗬𝗮𝗺𝗲𝗻𝗧𝗵𝗼𝗻 𓆪](https://t.me/YamenThon)\n𓍹ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ𓍻\n\n**✧ تم إيقاف الترجمة الفورية ✓**\n**✧ لغــه الترجمه ← {friendly} ({lang})**\n**✧ حـالـة التـرجمة ← معــطله 🔴**")
 
 
 # فلتر للرسائل العادية — يترجم رسائل صاحب السورس فقط ويعدلها بدل إرسال رد
@@ -153,4 +153,4 @@ async def auto_translate(event):
             await event.edit(f"{translated}")
     except Exception as e:
         # لو فشلت الترجمة نخلي رسالة خطأ بسيطة (نعدل بدل أن نرد)
-        await event.edit(f"⚠️ خطأ في الترجمة: ")
+        await event.reply(f"⚠️ خطأ في الترجمة: ")
