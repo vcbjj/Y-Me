@@ -23,23 +23,63 @@ def save_data():
         json.dump(translate_data, f, ensure_ascii=False, indent=2)
 
 
+# قاموس أسماء اللغات الشائعة
+LANG_MAP = {
+    "انجليزي": "en",
+    "انجليزية": "en",
+    "انكليزي": "en",
+    "عربي": "ar",
+    "عربية": "ar",
+    "فرنسي": "fr",
+    "فرنسية": "fr",
+    "روسي": "ru",
+    "روسية": "ru",
+    "هندي": "hi",
+    "هندية": "hi",
+    "فارسي": "fa",
+    "فارسية": "fa",
+    "اسباني": "es",
+    "اسبانية": "es",
+    "تركي": "tr",
+    "تركية": "tr",
+    "الماني": "de",
+    "المانية": "de",
+    "صيني": "zh-cn",
+    "ياباني": "ja",
+    "كوري": "ko",
+    "برتغالي": "pt",
+    "ايطالي": "it",
+    "فرنسيه": "fr",  # أضفت صيغة إضافية لتسهيل الاستخدام
+}
+
 # أمر ضبط اللغة
-@zedub.zed_cmd(pattern="لغه الترجمه(?:\s+(\w+))?")
+@zedub.zed_cmd(pattern="لغه الترجمه(?:\s+(.+))?")
 async def set_lang(event):
-    lang = event.pattern_match.group(1)
+    lang_name = event.pattern_match.group(1)
     chat_id = str(event.chat_id)
 
-    if not lang:
+    if not lang_name:
+        langs = "، ".join(LANG_MAP.keys())
         return await edit_or_reply(
             event,
-            "✧ أرسل اللغة التي تريد ضبطها.\nمثال:\n`.لغه الترجمه en` للإنجليزية\n`.لغه الترجمه ar` للعربية"
+            f"✧ أرسل اسم اللغة التي تريد ضبطها.\nمثال:\n`.لغه الترجمه انجليزي`\n\nاللغات المدعومة:\n{langs}"
+        )
+
+    # تحويل الاسم إلى رمز لغة
+    lang_name = lang_name.strip().lower()
+    lang_code = LANG_MAP.get(lang_name)
+
+    if not lang_code:
+        langs = "، ".join(LANG_MAP.keys())
+        return await edit_or_reply(
+            event,
+            f"⚠️ لم أتعرف على اللغة **{lang_name}**.\nاللغات المدعومة:\n{langs}"
         )
 
     # حفظ اللغة
-    translate_data["chats"][chat_id] = lang
+    translate_data["chats"][chat_id] = lang_code
     save_data()
-    await edit_or_reply(event, f"✧ تم ضبط لغة الترجمة إلى **{lang}** في هذه الدردشة ✅")
-
+    await edit_or_reply(event, f"✧ تم ضبط لغة الترجمة إلى **{lang_name}** ✅")
 
 # أمر تفعيل الترجمة
 @zedub.zed_cmd(pattern="تفعيل الترجمه$")
