@@ -65,7 +65,7 @@ async def get_cast(casttype, movie):
 
 
 
-def translate(text, lang_tgt="en", lang_src=None):
+def translate(text, lang_tgt="ar", lang_src=None):
     try:
         
         if lang_src is None:
