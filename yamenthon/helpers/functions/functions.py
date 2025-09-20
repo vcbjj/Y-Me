@@ -63,8 +63,6 @@ async def get_cast(casttype, movie):
 
 #________الاسطوره عاشق الصمت ____
 
-from deep_translator import GoogleTranslator
-
 def translate(text, lang_tgt="en", lang_src="auto"):
     try:
         result = GoogleTranslator(source=lang_src, target=lang_tgt).translate(text)
