@@ -107,7 +107,7 @@ def progress(current, total):
         current, total, (current / total) * 100))
 
 
-@zedub.zed_cmd(pattern="اللغات")
+@zedub.zed_cmd(pattern="الغه")
 async def get_ocr_languages(event):
     if event.fwd_from:
         return
