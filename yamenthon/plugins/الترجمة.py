@@ -14,13 +14,13 @@ langs = {
     'عربي': 'ar',
     'فارسي': 'fa',
     'بلغاري': 'bg',
-    'صيني مبسط': 'zh',
-    'صيني تقليدي ': 'zh-TW',
+    'صيني مبسط': 'zh-CN',
+    'صيني تقليدي': 'zh-TW',
     'كرواتي': 'hr',
     'دنماركي': 'da',
     'الماني': 'de',
     'انجليزي': 'en',
-    'فنلندي': 'fil',
+    'فنلندي': 'fi',      
     'فرنسي': 'fr',
     'يوناني': 'el',
     'هنغاري': 'hu',
@@ -35,14 +35,16 @@ langs = {
     'اسباني': 'es',
     'سويدي': 'sv',
     'تركي': 'tr',
-    'هندي': 'ur',
+    'هندي': 'hi',        
     'كردي': 'ku',
 }
 
 
 async def gtrans(text, lan_code):
     try:
-        response = GoogleTranslator(source="auto", target=lan_code).translate(text)
+        # 👇 إذا النص عربي نحط source="ar" بدلاً من auto
+        source_lang = "ar" if any("\u0600" <= ch <= "\u06FF" for ch in text) else "auto"
+        response = GoogleTranslator(source=source_lang, target=lan_code).translate(text)
         return response
     except Exception as er:
         return f"حدث خطأ \n{er}"
