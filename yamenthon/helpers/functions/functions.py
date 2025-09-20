@@ -63,8 +63,14 @@ async def get_cast(casttype, movie):
 
 #________الاسطوره عاشق الصمت ____
 
-def translate(text, lang_tgt="en", lang_src="auto"):
+
+
+def translate(text, lang_tgt="en", lang_src=None):
     try:
+        
+        if lang_src is None:
+            lang_src = "ar" if any("\u0600" <= ch <= "\u06FF" for ch in text) else "auto"
+
         result = GoogleTranslator(source=lang_src, target=lang_tgt).translate(text)
         return result
     except Exception as er:
