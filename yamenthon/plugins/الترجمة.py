@@ -1,4 +1,5 @@
 from asyncio import sleep
+from deep_translator import GoogleTranslator
 import requests
 import json
 import os
@@ -38,14 +39,13 @@ langs = {
     'كردي': 'ku',
 }
 
-async def gtrans(text, lan):
+
+async def gtrans(text, lan_code):
     try:
-        response = translate(text, lang_tgt=lan)
-        if response == 400:
-            return Flase
+        response = GoogleTranslator(source="auto", target=lan_code).translate(text)
+        return response
     except Exception as er:
         return f"حدث خطأ \n{er}"
-    return response
 
 @zedub.zed_cmd(pattern="event")
 async def Reda(event):
