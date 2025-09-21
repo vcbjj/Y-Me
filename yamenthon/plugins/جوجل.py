@@ -1,4 +1,4 @@
-# reverse search and google search  plugin for yamen
+# reverse search and google search  plugin for yamenthon
 import contextlib
 import os
 import re
@@ -11,7 +11,7 @@ from PIL import Image
 from search_engine_parser import BingSearch, GoogleSearch, YahooSearch
 from search_engine_parser.core.exceptions import NoResultsOrTrafficError
 
-from yamenthon import BOTLOG, BOTLOG_CHATID, Convert, zedub
+from . import BOTLOG, BOTLOG_CHATID, Convert, zedub
 
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
@@ -334,3 +334,42 @@ async def google_search(event):
     results = await event.client.inline_query("@StickerizerBot", query)
     await results[0].click(event.chat_id, reply_to=reply_to_id, hide_via=True)
     await event.delete()
+
+AsheqSearch_cmd = (
+"[ᯓ 𝗬𝗮𝗺𝗲𝗻𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - اوامــر البحــث 🔎 ](t.me/YamenThon) ."
+"**⋆─┄─┄─┄─┄──┄─┄─┄─┄─⋆**\n"
+
+"⚉ `.جو <كلمة>`\n"
+"**⪼ الوصف:** البحث في جوجل (مع دعم تحديد عدد النتائج والصفحة).\n"
+"**⪼ الاستخدام:**\n"
+"`.جو صدام حسين`\n"
+"`.جو عدد6 صدام حسين`\n"
+"`.جو صفحه2 صدام حسين`\n"
+"`.جو صفحه2 عدد7 صدام حسين`\n\n"
+
+"⚉ `.مصادر <كلمة>`\n"
+"**⪼ الوصف:** البحث في جوجل صور (Google Image Search).\n"
+"**⪼ الاستخدام:**\n"
+"`.مصادر قطة`\n\n"
+
+"⚉ `.مصادر` بالرد على صورة\n"
+"**⪼ الوصف:** البحث العكسي في جوجل (Google Reverse Search) عن صورة أو رابط صورة.\n"
+"**⪼ الاستخدام:** قم بالرد على صورة أو ملصق ثم أرسل `.مصادر`\n\n"
+
+"⚉ `.تحليل <عدد>`\n"
+"**⪼ الوصف:** البحث العكسي (Reverse) للصور عبر جوجل وعرض صور مشابهة.\n"
+"**⪼ الاستخدام:** قم بالرد على صورة وأرسل:\n"
+"`.تحليل 3` (يجيب 3 صور مشابهة)\n"
+"إذا ما كتبت العدد، يتم افتراض العدد = 3.\n\n"
+
+"⚉ `.جوجل <كلمة>`\n"
+"**⪼ الوصف:** إنشاء رابط مباشر لبحث جوجل عن الكلمة المحددة.\n"
+"**⪼ الاستخدام:**\n"
+"`.جوجل الذكاء الاصطناعي`\n\n"
+
+"**⪼ هذه الأوامر تغطي البحث النصي + البحث في الصور + البحث العكسي، والتحديثات مستمرة ✓📥**\n\n"
+)
+
+@zedub.zed_cmd(pattern="البحث")
+async def cmd(asheqqqq):
+    await edit_or_reply(asheqqqq, AsheqSearch_cmd)
