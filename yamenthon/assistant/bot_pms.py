@@ -124,12 +124,12 @@ async def bot_start(event):
         buttons = [
             [Button.inline("اوامر البـوت ⚒️", data="yamcmd")],
             [
-                Button.inline("اسماء انكلش َِ🛹", data="rozname"),
-                Button.inline("البايو َِ🛹", data="rozpio1"),
+                Button.inline("اسماء انكلش َِ❤️🎶", data="rozname"),
+                Button.inline("البايو َِ❤️🎶", data="rozpio1"),
             ],
             [
-                Button.inline("الاشهر َِ🛹 ⁦⁩", data="rozmonth"),
-                Button.inline("اسماء القنوات َِ🛹", data="chanlan"),
+                Button.inline("الاشهر َِ❤️🎶 ⁦⁩", data="rozmonth"),
+                Button.inline("اسماء القنوات َِ❤️🎶", data="chanlan"),
             ],
             [
                 Button.url("المطـور 🔗", "https://t.me/T_A_Tl"),
@@ -170,10 +170,11 @@ async def settings(event):
         await tgbot.send_message(event.chat_id,
                                  "**❈╎أهلًا بك مالكي 🖤𓆰**\n\n**❈╎ يمكنك استخدام ازرار البوت التي في الاسفل**\n**كما يمكنك استخدام البوت بوت تواصل خاص بك💞:**",
                                  buttons=[
-                                 [Button.inline("اسماء انكلش َِ🛹", data="rozname"),
-                                  Button.inline("البايو َِ🛹", data="rozpio1")],
-                                 [Button.inline("الاشهر َِ🛹 ⁦⁩", data="rozmonth"),
-                                  Button.inline("اسماء القنوات َِ🛹", data="chanlan")],
+                                 [Button.inline("اوامر البـوت ⚒️", data="yamcmd")],
+                                 [Button.inline("اسماء انكلش َِ❤️🎶", data="rozname"),
+                                  Button.inline("البايو َِ❤️🎶", data="rozpio1")],
+                                 [Button.inline("الاشهر َِ❤️🎶 ⁦⁩", data="rozmonth"),
+                                  Button.inline("اسماء القنوات َِ❤️🎶", data="chanlan")],
                                  [Button.url("المطـور 🔗", "https://t.me/T_A_Tl"),
                                   Button.url("قناة السورس 📢", "https://t.me/YamenThon")]
                                  ])
@@ -559,7 +560,10 @@ async def users(event):
 
 ⪼ `.اضف صورة البوت`
 **بالـرد ع صـورة او ميديـا لـ اضـافة صـورة ستـارت للبـوت** """
-    await tgbot.send_message(event.chat_id, rorza)
+    buttons = [
+        [Button.inline("🔙 رجوع", data="rozzag")],  # زر الرجوع
+    ]
+    await tgbot.send_message(event.chat_id, rorza, buttons=buttons)
 
 @tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozname"))) 
 async def settings(event):  #   قـسـم  الزغرفـة يمنثون 
@@ -568,8 +572,8 @@ async def settings(event):  #   قـسـم  الزغرفـة يمنثون
         await tgbot.send_message(event.chat_id,
                                  "**⌯︙ اختر احد الخيارات الاتيه. **",
                                  buttons=[
-                                     [Button.inline("اسماء شباب َِ🛹 ", data="razan"),
-                                      Button.inline("اسماء بنات َِ🛹", data="RR7PP")],
+                                     [Button.inline("اسماء شباب َِ❤️🎶 ", data="razan"),
+                                      Button.inline("اسماء بنات َِ❤️🎶", data="RR7PP")],
                                      [Button.inline("║ رجوع ║ ⁦⁩", data="rozzag")]
                                  ])
     else:
@@ -585,8 +589,8 @@ async def settings(event):  #    قـسـم  الزغرفـة لأسـماء ا�
         await tgbot.send_message(event.chat_id,
                                  "**⌯︙ اختر احد الخيارات الاتيه. **",
                                  buttons=[
-                                     [Button.inline("القائمه الاولى َِ🛹 ", data="rzan1"),
-                                      Button.inline("القائمه الثانيه َِ🛹", data="raza2")],
+                                     [Button.inline("القائمه الاولى َِ❤️🎶 ", data="rzan1"),
+                                      Button.inline("القائمه الثانيه َِ❤️🎶", data="raza2")],
                                      [Button.inline("║ رجوع ║", data="rozname")]
                                  ])
     else:
@@ -630,8 +634,8 @@ async def settings(event): #    قـسـم  الزغرفـة لأسـماء ال
         await tgbot.send_message(event.chat_id,
                                  "**⌯︙ اختر احد الخيارات الاتيه. **",
                                  buttons=[
-                                     [Button.inline("القائمه الاولى َِ🛹 ", data="RR7PP1"),
-                                      Button.inline("القائمه الثانيه َِ🛹", data="RR7PP2")],
+                                     [Button.inline("القائمه الاولى َِ❤️🎶 ", data="RR7PP1"),
+                                      Button.inline("القائمه الثانيه َِ❤️🎶", data="RR7PP2")],
                                      [Button.inline("║ رجوع ║", data="rozname")]
                                  ])
     else:
@@ -767,9 +771,9 @@ async def settings(event):  # قـسم الـمواليـد و الأشـهر
                                  "**⌯︙ اختر احد الخيارات الاتيه. **",
                                  buttons=[
                                      [Button.inline(
-                                         "المواليد َِ🛹 ", data="rozyear"),
+                                         "المواليد َِ❤️🎶 ", data="rozyear"),
                                       Button.inline(
-                                         "الاشهر َِ🛹", data="months")],
+                                         "الاشهر َِ❤️🎶", data="months")],
                                      [Button.inline(
                                          "║ رجوع ║", data="rozzag")]
                                  ])
@@ -835,3 +839,8 @@ async def settings(event):  # انتهـى :) اذا تخـمط تـذكر تع�
                 "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
                 alert=True
             )
+            
+            
+            
+
+                
