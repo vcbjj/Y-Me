@@ -8,7 +8,8 @@ from telethon.errors import UserIsBlockedError
 from telethon.events import CallbackQuery, StopPropagation
 from telethon.utils import get_display_name
 
-from yamenthon import Config, zedub
+from yamenthon import Config, zedub, bot
+from yamen.assistant import *
 
 from ..core import check_owner, pool
 from ..core.logger import logging
@@ -32,7 +33,6 @@ LOGS = logging.getLogger(__name__)
 plugin_category = "البوت"
 botusername = Config.TG_BOT_USERNAME
 
-
 class FloodConfig:
     BANNED_USERS = set()
     USERS = defaultdict(list)
@@ -40,7 +40,6 @@ class FloodConfig:
     SECONDS = 6
     ALERT = defaultdict(dict)
     AUTOBAN = 10
-
 
 async def check_bot_started_users(user, event):
     if user.id == Config.OWNER_ID:
@@ -62,7 +61,6 @@ async def check_bot_started_users(user, event):
         LOGS.error(str(e))
     if BOTLOG:
         await event.client.send_message(BOTLOG_CHATID, notification)
-
 
 @zedub.bot_cmd(
     pattern=f"^/start({botusername})?([\s]+)?$",
@@ -118,8 +116,26 @@ async def bot_start(event):
             )
         ]
     else:
-        start_msg = "**❈╎أهلًا بك مالكي 🖤𓆰**\n\n**❈╎لرؤيـة الأوامــر الخاصـة بـك اضغـط :**  /help "
-        buttons = None
+        start_msg = (
+            "**❈╎أهلًا بك مالكي 🖤𓆰**\n\n"
+            "**❈╎ يمكنك استخدام ازرار البوت التي في الاسفل**\n"
+            "**كما يمكنك استخدام البوت بوت تواصل خاص بك💞:**"
+        )
+        buttons = [
+            [Button.inline("اوامر البـوت ⚒️", data="yamcmd")],
+            [
+                Button.inline("اسماء انكلش َِ🛹", data="rozname"),
+                Button.inline("البايو َِ🛹", data="rozpio1"),
+            ],
+            [
+                Button.inline("الاشهر َِ🛹 ⁦⁩", data="rozmonth"),
+                Button.inline("اسماء القنوات َِ🛹", data="chanlan"),
+            ],
+            [
+                Button.url("المطـور 🔗", "https://t.me/T_A_Tl"),
+                Button.url("قناة السورس 📢", "https://t.me/YamenThon"),
+            ],
+        ]
     try:
         if custompic:
             await event.client.send_file(
@@ -144,10 +160,28 @@ async def bot_start(event):
                 BOTLOG_CHATID,
                 f"**Error**\nThere was a error while user starting your bot.\\\x1f                \n`{e}`",
             )
-
     else:
         await check_bot_started_users(chat, event)
 
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozzag"))) 
+async def settings(event):
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 "**❈╎أهلًا بك مالكي 🖤𓆰**\n\n**❈╎ يمكنك استخدام ازرار البوت التي في الاسفل**\n**كما يمكنك استخدام البوت بوت تواصل خاص بك💞:**",
+                                 buttons=[
+                                 [Button.inline("اسماء انكلش َِ🛹", data="rozname"),
+                                  Button.inline("البايو َِ🛹", data="rozpio1")],
+                                 [Button.inline("الاشهر َِ🛹 ⁦⁩", data="rozmonth"),
+                                  Button.inline("اسماء القنوات َِ🛹", data="chanlan")],
+                                 [Button.url("المطـور 🔗", "https://t.me/T_A_Tl"),
+                                  Button.url("قناة السورس 📢", "https://t.me/YamenThon")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
 
 @zedub.bot_cmd(incoming=True, func=lambda e: e.is_private)
 async def bot_pms(event):  # sourcery no-metrics
@@ -205,7 +239,6 @@ async def bot_pms(event):  # sourcery no-metrics
                         f"**- خطـأ**\nحدث خطـأ أثنـاء بـدء المستخدم لبرنامج الروبوت الخاص بك.\n`{str(e)}`",
                     )
 
-
 @zedub.bot_cmd(edited=True)
 async def bot_pms_edit(event):  # sourcery no-metrics
     chat = await event.get_chat()
@@ -234,7 +267,6 @@ async def bot_pms_edit(event):  # sourcery no-metrics
                         BOTLOG_CHATID,
                         f"**- خطـأ**\nحدث خطـأ أثنـاء بـدء المستخدم لبرنامج الروبوت الخاص بك.\n`{str(e)}`",
                     )
-
     else:
         reply_to = await reply_id(event)
         if reply_to is not None:
@@ -255,7 +287,6 @@ async def bot_pms_edit(event):  # sourcery no-metrics
                     )
                 except Exception as e:
                     LOGS.error(str(e))
-
 
 @tgbot.on(events.MessageDeleted)
 async def handler(event):
@@ -283,7 +314,6 @@ async def handler(event):
                 ),
                 None,
             )
-
             try:
                 if reply_msg:
                     users = get_user_id(reply_msg)
@@ -300,7 +330,6 @@ async def handler(event):
                     )
             except Exception as e:
                 LOGS.error(str(e))
-
 
 @zedub.bot_cmd(pattern="^/uinfo$", from_users=Config.OWNER_ID)
 async def bot_start(event):
@@ -330,7 +359,6 @@ async def bot_start(event):
             \n**الايـدي:** `{user_id}`"
     await info_msg.edit(uinfo)
 
-
 async def send_flood_alert(user_) -> None:
     # sourcery no-metrics
     buttons = [
@@ -356,11 +384,9 @@ async def send_flood_alert(user_) -> None:
                     BOTLOG_CHATID,
                     f"**- خطـأ :**\nعنـد تحديث عدد مرات التكرار\n`{e}`",
                 )
-
         flood_count = FloodConfig.ALERT[user_.id]["count"]
     else:
         flood_count = FloodConfig.ALERT[user_.id]["count"] = 1
-
     flood_msg = (
         r"⚠️ **#تحذيـر_التكـرار**"
         "\n\n"
@@ -370,7 +396,6 @@ async def send_flood_alert(user_) -> None:
         f"\n\n**قام بالتكـرار بالبوت المساعد** ->  [ Flood rate ({flood_count}) ]\n"
         "__Quick Action__: Ignored from bot for a while."
     )
-
     if found:
         if flood_count >= FloodConfig.AUTOBAN:
             if user_.id in Config.SUDO_USERS:
@@ -418,7 +443,6 @@ async def send_flood_alert(user_) -> None:
     if FloodConfig.ALERT[user_.id].get("fa_id") is None and fa_msg:
         FloodConfig.ALERT[user_.id]["fa_id"] = fa_msg.id
 
-
 @zedub.tgbot.on(CallbackQuery(data=re.compile(b"bot_pm_ban_([0-9]+)")))
 @check_owner
 async def bot_pm_ban_cb(c_q: CallbackQuery):
@@ -432,10 +456,8 @@ async def bot_pm_ban_cb(c_q: CallbackQuery):
         await ban_user_from_bot(user, "Spamming Bot")
         await c_q.edit(f"**- الايـدي :** {user_id} \n**- تم الحظـر .. بنجـاح ✅**")
 
-
 def time_now() -> Union[float, int]:
     return datetime.timestamp(datetime.now())
-
 
 @pool.run_in_thread
 def is_flood(uid: int) -> Optional[bool]:
@@ -460,7 +482,6 @@ def is_flood(uid: int) -> Optional[bool]:
         )
         return True
 
-
 @zedub.tgbot.on(CallbackQuery(data=re.compile(b"toggle_bot-antiflood_off$")))
 @check_owner
 async def settings_toggle(c_q: CallbackQuery):
@@ -469,7 +490,6 @@ async def settings_toggle(c_q: CallbackQuery):
     delgvar("bot_antif")
     await c_q.answer("Bot Antiflood disabled.", alert=False)
     await c_q.edit("**- مكافـح التكـرار التلقـائي بالبـوت .. تم تعطيلـه بنجـاح✓**")
-
 
 @zedub.bot_cmd(incoming=True, func=lambda e: e.is_private)
 @zedub.bot_cmd(edited=True, func=lambda e: e.is_private)
@@ -488,3 +508,330 @@ async def antif_on_msg(event):
         raise StopPropagation
     if user_id in FloodConfig.BANNED_USERS:
         FloodConfig.BANNED_USERS.remove(user_id)
+
+# اوامــر البـــوت 
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"yamcmd")))
+async def users(event):
+    await event.delete()
+    rorza = """ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 𝗯𝗼𝘁 **- قائمــة اوامــر البـوت المسـاعـد 🤖♥️**
+**⋆┄─┄─┄─┄┄─┄─┄─┄─┄┄⋆**
+**📑 اولاً الاوامــر الإداريـة الخاصـه بالبــوت المسـاعــد الخـاص بـك :**
+**ملاحـظــه :**
+تعمـل هذه الأوامـر فقـط بخـاص البـوت المسـاعـد
+
+/info <بالـرد ع رسـالة الشخـص>
+**لـ بجلب معلومات المرسـل حتى لو مغلـق الخصوصيـه في حسابه على عكـس بوتـات التواصـل العاديـه**
+
+/ban <السبب> او /ban <المعرف/الايدي> <السبب>
+**الرد على رسالة المستخدم مع ذكر السبب حتى يتم إعلامه انك قمت بحظره من البـوت**
+• **ملاحظـه :**
+السبب لا بد منه. بدون سبب لن يعمـل
+
+/unban <السبب (اختياري)> او /unban <المعـرف/الايـدي>
+**بالـرد على رسالة المستخدم أو باضافـة يـوزر/ ايـدي المستخدم للامـر لإلغاء حظـره من البـوت**
+
+`.المحظورين`
+**لـ جلب قائمـة المستخدميـن المحظـورين في البـوت**
+
+/broadcast
+**بالـرد على رسالة ليتم اذاعتهـا لجميـع مشتـركيـن البـوت الخاص بـك**
+
+`.المشتركين`
+**لـ جلب احصائيـات مستخدميـن البـوت الخـاص بـك **
+ٴ**⋆┄─┄─┄─┄┄─┄─┄─┄─┄┄⋆**
+**📑 ثانيـاً اوامــر فارات تخصيص الكلايـش الخاصـه بالبــوت المسـاعــد الخـاص بـك :**
+
+⪼ `.اضف فار كليشة البوت`
+**بالـرد ع الكليشـة لـ اضـافة كليشـة ستـارت**
+**مثــال : قـم بكتابـة كليشـة خاصـه بـك كالتـالـي:-**
+
+`⌔ هـاهـلـو حبـي {zz_mention} 🫂
+⌔ انـا بـوت التواصـل الخـاص بـ {my_zname}
+⌔ يمكنك التواصـل مـع مالكـي مـن هنـا 😇
+⌔ فقـط ارسـل رسـالتك وانتظـر الـرد 📨`
+
+**¹- ارسـل الكليشـه اولاً**
+**²- ثـم بالـرد ع الكليشـة ارسـل الامـر :**
+`.اضف فار كليشة البوت`
+
+⪼ `.اضف فار زر الستارت`
+**بالـرد ع يوزرك او يوزر قناتك لـ اضـافة زر اسفـل كليشـة الستـارت**
+
+⪼ `.اضف صورة البوت`
+**بالـرد ع صـورة او ميديـا لـ اضـافة صـورة ستـارت للبـوت** """
+    await tgbot.send_message(event.chat_id, rorza)
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozname"))) 
+async def settings(event):  #   قـسـم  الزغرفـة يمنثون 
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 "**⌯︙ اختر احد الخيارات الاتيه. **",
+                                 buttons=[
+                                     [Button.inline("اسماء شباب َِ🛹 ", data="razan"),
+                                      Button.inline("اسماء بنات َِ🛹", data="RR7PP")],
+                                     [Button.inline("║ رجوع ║ ⁦⁩", data="rozzag")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"razan")))  
+async def settings(event):  #    قـسـم  الزغرفـة لأسـماء الشـباب
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 "**⌯︙ اختر احد الخيارات الاتيه. **",
+                                 buttons=[
+                                     [Button.inline("القائمه الاولى َِ🛹 ", data="rzan1"),
+                                      Button.inline("القائمه الثانيه َِ🛹", data="raza2")],
+                                     [Button.inline("║ رجوع ║", data="rozname")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+# Boys zag list1 - قائمه اسماء الشباب الاولى
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rzan1")))
+async def settings(event): #    قـسـم  الزغرفـة لأسـماء الشـباب 1
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 Boyroz1, 
+                                 buttons=[[Button.inline("║ رجوع ║", data="razan")]])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+# Boys zag list2 - قائمه اسماء الشباب الثانيه
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"raza2"))) 
+async def settings(event):  #    قـسـم  الزغرفـة لأسـماء الشـباب 2
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 Boyroz2, 
+                                 buttons=[[Button.inline("║ رجوع ║", data="razan")]])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"RR7PP")))
+async def settings(event): #    قـسـم  الزغرفـة لأسـماء البـنات
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 "**⌯︙ اختر احد الخيارات الاتيه. **",
+                                 buttons=[
+                                     [Button.inline("القائمه الاولى َِ🛹 ", data="RR7PP1"),
+                                      Button.inline("القائمه الثانيه َِ🛹", data="RR7PP2")],
+                                     [Button.inline("║ رجوع ║", data="rozname")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+# شنو تـدور  :)
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"RR7PP1")))
+async def settings(event): #    قـسـم  الزغرفـة لأسـماء البـنات 1
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 Girlan1, 
+                                 buttons=[[Button.inline("║ رجوع ║", data="RR7PP")]])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"RR7PP2")))
+async def settings(event):  #    قـسـم  الزغرفـة لأسـماء البـنات 2
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 Girlan2, 
+                                 buttons=[[Button.inline("║ رجوع ║", data="RR7PP")]])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozpio1"))) 
+async def settings(event):  #    قـسـم  البـايو 1
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 ROZPIO1,
+                                 buttons=[
+                                     [Button.inline(" السابق ⫸", data="rozpio5"),
+                                      Button.inline("║ خروج ║ ⁦⁩", data="rozzag"),
+                                      Button.inline("⫷ التالي ", data="rozpio2")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozpio2"))) 
+async def settings(event): #    قـسـم  البـايو 2
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 ROZPIO2,
+                                 buttons=[
+                                     [Button.inline("السابق ⫸ ", data="rozpio1"),
+                                      Button.inline("║ خروج ║ ⁦⁩", data="rozzag"),
+                                      Button.inline("⫷ التالي", data="rozpio3")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozpio3"))) 
+async def settings(event): #    قـسـم  البـايو 3
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 ROZPIO3,
+                                 buttons=[
+                                     [Button.inline("السابق ⫸ ", data="rozpio2"),
+                                      Button.inline("║ خروج ║ ⁦⁩", data="rozzag"),
+                                      Button.inline("⫷ التالي", data="rozpio4")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozpio4"))) 
+async def settings(event): #    قـسـم  البـايو 4
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 ROZPIO4,
+                                 buttons=[
+                                     [Button.inline("السابق ⫸ ", data="rozpio3"),
+                                      Button.inline("║ خروج ║ ⁦⁩", data="rozzag"),
+                                      Button.inline("⫷ التالي", data="rozpio5")]
+                                 ])
+    else:
+        await event.answer(
+            "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+            alert=True
+        )
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozpio5")))
+async def settings(event):  # قـسـم البـايو 5
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 ROZPIO5,
+                                 buttons=[
+                                     [Button.inline(
+                                         "السابق ⫸ ", data="rozpio4"),
+                                      Button.inline(
+                                         "║ خروج ║⁦⁩", data="rozzag"),
+                                      Button.inline(
+                                         "⫷ التالي", data="rozpio1")]
+                                 ])
+        if str(event.sender_id) == str(Config.OWNER_ID):
+            # هنا ترسل رسالة المالك
+            await event.respond(start_msg, buttons=buttons)
+        else:
+            await event.answer(
+                "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+                alert=True
+            )
+
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozmonth")))
+async def settings(event):  # قـسم الـمواليـد و الأشـهر
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 "**⌯︙ اختر احد الخيارات الاتيه. **",
+                                 buttons=[
+                                     [Button.inline(
+                                         "المواليد َِ🛹 ", data="rozyear"),
+                                      Button.inline(
+                                         "الاشهر َِ🛹", data="months")],
+                                     [Button.inline(
+                                         "║ رجوع ║", data="rozzag")]
+                                 ])
+        if str(event.sender_id) == str(Config.OWNER_ID):
+            # هنا ترسل رسالة المالك
+            await event.respond(start_msg, buttons=buttons)
+        else:
+            await event.answer(
+                "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+                alert=True
+            )
+
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"months")))
+async def settings(event):  # قـسم الأشـهر
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 JMTHSH,
+                                 buttons=[[Button.inline("║ رجوع ║", data="rozzag")]
+                                          ])
+        if str(event.sender_id) == str(Config.OWNER_ID):
+            # هنا ترسل رسالة المالك
+            await event.respond(start_msg, buttons=buttons)
+        else:
+            await event.answer(
+                "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+                alert=True
+            )
+
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rozyear")))
+async def settings(event):  # قـسم السنـوات :)
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 JEPYEAR,
+                                 buttons=[[Button.inline("║ رجوع ║", data="rozmonth")]
+                                          ])
+        if str(event.sender_id) == str(Config.OWNER_ID):
+            # هنا ترسل رسالة المالك
+            await event.respond(start_msg, buttons=buttons)
+        else:
+            await event.answer(
+                "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+                alert=True
+            )
+
+
+@tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"chanlan")))
+async def settings(event):  # انتهـى :) اذا تخـمط تـذكر تعـب غـيرك :)
+    if event.sender_id == bot.uid:
+        await event.delete()
+        await tgbot.send_message(event.chat_id,
+                                 CHANLAN,
+                                 buttons=[[Button.inline("║ رجوع ║", data="rozzag")]
+                                          ])
+        if str(event.sender_id) == str(Config.OWNER_ID):
+            # هنا ترسل رسالة المالك
+            await event.respond(start_msg, buttons=buttons)
+        else:
+            await event.answer(
+                "انت لا تستطيع استخدام البوت لأنه مخصص للمالك فقط.",
+                alert=True
+            )
