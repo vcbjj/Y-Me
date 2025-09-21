@@ -1,5 +1,6 @@
-# refz module for purging unneeded messages(usually spam or ot).
+# YamenThon module for purging unneeded messages(usually spam or ot).
 import re
+import asyncio
 from asyncio import sleep
 
 from telethon.errors import rpcbaseerrors
@@ -16,7 +17,7 @@ from telethon.tl.types import (
     InputMessagesFilterVoice,
 )
 
-from yamenthon import zedub
+from . import zedub
 
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.utils import reply_id
@@ -43,13 +44,13 @@ purgetype = {
 
 
 @zedub.zed_cmd(
-    pattern="مسح(\s*| \d+)$",
+    pattern="حذف(\s*| \d+)$",
     command=("del", plugin_category),
     info={
-        "header": "To delete replied message.",
-        "description": "Deletes the message you replied to in x(count) seconds if count is not used then deletes immediately",
-        "usage": ["{tr}del <time in seconds>", "{tr}del"],
-        "examples": "{tr}del 2",
+        "header": "لـ حذف رسـاله بالـرد",
+        "الوصـف": "Deletes the message you replied to in x(count) seconds if count is not used then deletes immediately",
+        "الاستخـدام": ["{tr}del <time in seconds>", "{tr}del"],
+        "مثــال": "{tr}del 2",
     },
 )
 async def delete_it(event):
@@ -74,7 +75,7 @@ async def delete_it(event):
                     )
         elif input_str:
             if not input_str.startswith("var"):
-                await edit_or_reply(event, "**- عـذرًا .. الرسـالة غيـر موجـودة**")
+                await edit_or_reply(event, "**- عـذراً .. الرسـالة غيـر موجـودة**")
         else:
             try:
                 await msg_src.delete()
@@ -90,39 +91,68 @@ async def delete_it(event):
 
 
 @zedub.zed_cmd(
-    pattern="purgefrom$",
-    command=("purgefrom", plugin_category),
+    pattern=".حذف(\s*| \d+)$",
+    command=("del", plugin_category),
     info={
-        "header": "To mark the replied message as starting message of purge list.",
-        "description": "After using this u must use purgeto command also so that the messages in between this will delete.",
-        "usage": "{tr}purgefrom",
+        "header": "لـ حذف رسـاله بالـرد",
+        "الوصـف": "Deletes the message you replied to in x(count) seconds if count is not used then deletes immediately",
+        "الاستخـدام": ["{tr}del <time in seconds>", "{tr}del"],
+        "مثــال": "{tr}del 2",
     },
 )
+async def delete_it(event): #Code by T.me/T_A_Tl
+    "To delete replied message."
+    input_str = event.pattern_match.group(1).strip()
+    msg_src = await event.get_reply_message()
+    if msg_src:
+        if input_str and input_str.isnumeric():
+            await event.delete()
+            await sleep(int(input_str))
+            try:
+                await msg_src.delete()
+                if BOTLOG:
+                    await event.client.send_message(
+                        BOTLOG_CHATID, "#الحـذف \n\n**- تـم حـذف الرسـالة .. بـ نجـاح ☑️**"
+                    )
+            except rpcbaseerrors.BadRequestError:
+                if BOTLOG:
+                    await event.client.send_message(
+                        BOTLOG_CHATID,
+                        "**- لا استطيـع الحـذف ليـس لـدي صلاحيـات المشـرف**",
+                    )
+        elif input_str:
+            if not input_str.startswith("var"):
+                await edit_or_reply(event, "**- عـذراً .. الرسـالة غيـر موجـودة**")
+        else:
+            try:
+                await msg_src.delete()
+                await event.delete()
+                if BOTLOG:
+                    await event.client.send_message(
+                        BOTLOG_CHATID, "#الحـذف \n\n**- تـم حـذف الرسـالة .. بـ نجـاح ☑️**"
+                    )
+            except rpcbaseerrors.BadRequestError:
+                await edit_or_reply(event, "**- عـذرا لا استـطيع حـذف هـذه الرسـالة**")
+    elif not input_str:
+        await event.delete()
+
+
+@zedub.zed_cmd(pattern="بداية الحذف")
 async def purge_from(event):
-    "To mark the message for purging"
     reply = await event.get_reply_message()
     if reply:
         reply_message = await reply_id(event)
         purgelist[event.chat_id] = reply_message
         await edit_delete(
             event,
-            "`This Message marked for deletion. Reply to another message with purgeto to delete all messages in between.`",
+            "**- تم تحديد رسالة بداية الحذف 🗑✅**\n**- الان قم بالـرد على آخر رسالة عبر الامر**\n\n`.نهاية الحذف`",
         )
     else:
-        await edit_delete(event, "`Reply to a message to let me know what to delete.`")
+        await edit_delete(event, "**- بالـرد على اول رسالة تريد الحذف من عندهـا**")
 
 
-@zedub.zed_cmd(
-    pattern="purgeto$",
-    command=("purgeto", plugin_category),
-    info={
-        "header": "To mark the replied message as end message of purge list.",
-        "description": "U need to use purgefrom command before using this command to function this.",
-        "usage": "{tr}purgeto",
-    },
-)
+@zedub.zed_cmd(pattern="نهاية الحذف")
 async def purge_to(event):
-    "To mark the message for purging"
     chat = await event.get_input_chat()
     reply = await event.get_reply_message()
     try:
@@ -130,12 +160,12 @@ async def purge_to(event):
     except KeyError:
         return await edit_delete(
             event,
-            "`First mark the messsage with purgefrom and then mark purgeto .So, I can delete in between Messages`",
+            "**- اولاً قم بالـرد ع اول رسالة تريد ان تبدأ منهـا الحذف عبر الامـر**\n `.بداية الحذف` \n**بالـرد ع الرسالة**\n\n**- ثم بعـد ذلك قم باستخدام الامـر**\n`.نهاية الحذف`\n**- بالـرد على آخر سالة تريـد الحذف اليهـا**",
         )
     if not reply or not from_message:
         return await edit_delete(
             event,
-            "`First mark the messsage with purgefrom and then mark purgeto .So, I can delete in between Messages`",
+            "**- اولاً قم بالـرد ع اول رسالة تريد ان تبدأ منهـا الحذف عبر الامـر**\n `.بداية الحذف` \n**بالـرد ع الرسالة**\n\n**- ثم بعـد ذلك قم باستخدام الامـر**\n`.نهاية الحذف`\n**- بالـرد على آخر سالة تريـد الحذف اليهـا**",
         )
     try:
         to_message = await reply_id(event)
@@ -154,31 +184,24 @@ async def purge_to(event):
             await event.client.delete_messages(chat, msgs)
         await edit_delete(
             event,
-            "`Fast purge complete!\nPurged " + str(count) + " messages.`",
+            "**- التنظيف السريـع تم بنجـاح ✅**\n**- تم حـذف** " + str(count) + " **رسالـه 🗑**",
         )
         if BOTLOG:
             await event.client.send_message(
                 BOTLOG_CHATID,
-                "#PURGE \n`Purge of " + str(count) + " messages done successfully.`",
+                "#التنظيف 🗑 \n**- تم حـذف **" + str(count) + "**رسـالة .. بنجـاح ☑️**",
             )
     except Exception as e:
-        await edit_delete(event, f"**Error**\n`{e}`")
+        await edit_delete(event, f"**- خطـأ :**\n`{e}`")
 
 
-@zedub.zed_cmd(
-    pattern="حذف رسائلي",
-    command=("حذف رسائلي", plugin_category),
-    info={
-        "header": "To purge your latest messages.",
-        "description": "Deletes x(count) amount of your latest messages.",
-        "usage": "{tr}purgeme <count>",
-        "examples": "{tr}purgeme 2",
-    },
-)
+@zedub.zed_cmd(pattern="حذف رسائلي")
 async def purgeme(event):
-    "To purge your latest messages."
     message = event.text
-    count = int(message[12:])
+    if message: #Code by T.me/T_A_Tl
+        count = int(message[12:])
+    else: #Code by T.me/T_A_Tl
+        count = int(10000)
     i = 1
     async for message in event.client.iter_messages(event.chat_id, from_user="me"):
         if i > count + 1:
@@ -188,12 +211,12 @@ async def purgeme(event):
 
     smsg = await event.client.send_message(
         event.chat_id,
-        f"**    ⃟⁞⃟⟢ ╎تـم حـذف** " + str(count) + "** رسـالـة . . بنجـاح ☑️**",
+        f"**❈╎تـم حـذف** " + str(count) + " **رسـالـة . . بنجـاح ☑️**",
     )
     if BOTLOG:
         await event.client.send_message(
             BOTLOG_CHATID,
-            "#حـذف_رسـائلي \n\n**    ⃟⁞⃟⟢ ╎تـم حـذف** " + str(count) + " **رسـالـة . . بنجـاح ☑️**",
+            "#حـذف_رسـائلي \n\n**❈╎تـم حـذف** " + str(count) + "**رسـالـة . . بنجـاح ☑️**",
         )
     await sleep(5)
     await smsg.delete()
@@ -205,14 +228,14 @@ async def purgeme(event):
     command=("تنظيف", plugin_category),
     info={
         "header": "To purge messages from the replied message.",
-        "description": "•  Deletes the x(count) amount of messages from the replied message\
+        "الوصـف": "•  Deletes the x(count) amount of messages from the replied message\
         \n•  If you don't use count then deletes all messages from the replied messages\
         \n•  If you haven't replied to any message and used count then deletes recent x messages.\
         \n•  If you haven't replied to any message or havent mentioned any flag or count then doesnt do anything\
         \n•  If flag is used then selects that type of messages else will select all types\
         \n•  You can use multiple flags like -gi 10 (It will delete 10 images and 10 gifs but not 10 messages of combination images and gifs.)\
         ",
-        "flags": {
+        "امـر اضافـي": {
             "a": "To delete Voice messages.",
             "f": "To delete documents.",
             "g": "To delete gif's.",
@@ -225,11 +248,11 @@ async def purgeme(event):
             "v": "To delete Video messages.",
             "s": "To search paticular message and delete",
         },
-        "usage": [
+        "الاستخـدام": [
             "{tr}purge <flag(optional)> <count(x)> <reply> - to delete x flagged messages after reply",
             "{tr}purge <flag> <count(x)> - to delete recent x messages",
         ],
-        "examples": [
+        "مثــال": [
             "{tr}purge 10",
             "{tr}purge -f 10",
             "{tr}purge -gi 10",
@@ -272,9 +295,9 @@ async def fastpurger(event):  # sourcery no-metrics
                         if msgs:
                             await event.client.delete_messages(chat, msgs)
                     elif ty == "كلمه":
-                        error += "\n    ⃟⁞⃟⟢ ╎الكلمـه المضـافه خـطأ"
+                        error += "\n✾╎الكلمـه المضـافه خـطأ"
                     else:
-                        error += f"\n\n    ⃟⁞⃟⟢ ╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
+                        error += f"\n\n✾╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
             else:
                 count += 1
                 async for msg in event.client.iter_messages(
@@ -327,9 +350,9 @@ async def fastpurger(event):  # sourcery no-metrics
                 if msgs:
                     await event.client.delete_messages(chat, msgs)
             else:
-                error += f"\n    ⃟⁞⃟⟢ ╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
+                error += f"\n✾╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
         elif input_str:
-            error += f"\n    ⃟⁞⃟⟢ ╎`.تنظيف {input_str}` الامـر خـطأ يـرجى الكتابة بـشكل صحيح"
+            error += f"\n✾╎`.تنظيف {input_str}` الامـر خـطأ يـرجى الكتابة بـشكل صحيح"
         elif p_type is not None:
             for ty in p_type:
                 if ty in purgetype:
@@ -346,7 +369,7 @@ async def fastpurger(event):  # sourcery no-metrics
                     if msgs:
                         await event.client.delete_messages(chat, msgs)
                 else:
-                    error += f"\n    ⃟⁞⃟⟢ ╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة"
+                    error += f"\n✾╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة"
         else:
             async for msg in event.client.iter_messages(
                 chat, min_id=event.reply_to_msg_id - 1
@@ -373,10 +396,10 @@ async def fastpurger(event):  # sourcery no-metrics
                     if msgs:
                         await event.client.delete_messages(chat, msgs)
                 elif ty == "الكتابه":
-                    error += "\n    ⃟⁞⃟⟢ ╎لا تستطـيع استـخدام امر التنظيف عبر البحث مع الكلمـه المضـافه"
+                    error += "\n✾╎لا تستطـيع استـخدام امر التنظيف عبر البحث مع الكلمـه المضـافه"
 
                 else:
-                    error += f"\n    ⃟⁞⃟⟢ ╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
+                    error += f"\n✾╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
         elif p_type == "كلمه":
             try:
                 cont, inputstr = input_str.split(" ")
@@ -406,7 +429,7 @@ async def fastpurger(event):  # sourcery no-metrics
             if msgs:
                 await event.client.delete_messages(chat, msgs)
         else:
-            error += f"\n    ⃟⁞⃟⟢ ╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
+            error += f"\n✾╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
     elif p_type is not None:
         for ty in p_type:
             if ty in purgetype:
@@ -421,10 +444,10 @@ async def fastpurger(event):  # sourcery no-metrics
                 if msgs:
                     await event.client.delete_messages(chat, msgs)
             elif ty == "كلمه":
-                error += "\n    ⃟⁞⃟⟢ ╎لا تستطـيع استـخدام امر التنظيف عبر البحث مع الكلمـه المضـاف"
+                error += "\n✾╎لا تستطـيع استـخدام امر التنظيف عبر البحث مع الكلمـه المضـاف"
 
             else:
-                error += f"\n    ⃟⁞⃟⟢ ╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
+                error += f"\n✾╎`{ty}`  : هـذه الكلمـه المضـافه خاطئـة "
     elif input_str.isnumeric():
         async for msg in event.client.iter_messages(chat, limit=int(input_str) + 1):
             count += 1
@@ -435,15 +458,15 @@ async def fastpurger(event):  # sourcery no-metrics
         if msgs:
             await event.client.delete_messages(chat, msgs)
     else:
-        error += "\n    ⃟⁞⃟⟢ ╎لم يتـم تحـديد كلمـه مضـافه ارسـل  (`.اوامر التنظيف`) لـ رؤيـة اوامـر التنظـيف"
+        error += "\n✾╎لم يتـم تحـديد كلمـه مضـافه ارسـل  (`.اوامر التنظيف`) لـ رؤيـة اوامـر التنظـيف"
     if msgs:
         await event.client.delete_messages(chat, msgs)
     if count > 0:
-        result += "    ⃟⁞⃟⟢ ╎اكـتمل الـتنظيف السـريع\n    ⃟⁞⃟⟢ ╎تـم حـذف  " + str(count) + "من الـرسائل "
+        result += "✾╎اكـتمل الـتنظيف السـريع\n✾╎تـم حـذف  " + str(count) + "من الـرسائل "
     if error != "":
         result += f"\n\n**خـطأ:**{error}"
     if result == "":
-        result += "    ⃟⁞⃟⟢ ╎لا تـوجد رسـائل لـتنظيفها"
+        result += "✾╎لا تـوجد رسـائل لـتنظيفها"
     hi = await event.client.send_message(event.chat_id, result)
     if BOTLOG:
         await event.client.send_message(
@@ -455,27 +478,27 @@ async def fastpurger(event):  # sourcery no-metrics
 
 
 @zedub.zed_cmd(
-    pattern="upurge( -a)?(?:\s|$)([\s\S]*)",
-    command=("upurge", plugin_category),
+    pattern="حذف رسائله( الكل)?(?:\s|$)([\s\S]*)",
+    command=("حذف رسائله", plugin_category),
     info={
         "header": "To purge messages from the replied message of replied user.",
-        "description": "•  Deletes the x(count) amount of messages from the replied message of replied user\
+        "الوصـف": "•  Deletes the x(count) amount of messages from the replied message of replied user\
         \n•  If you don't use count then deletes all messages from the replied messages of replied user\
         \n•  Use -a flag to delete all his messages or mention x to delete x recent messages of his\
         \n•  Use -s flag to delete all his messages which contatins given word.\
         \n•  You cann't use both flags at a time\
         ",
-        "flags": {
-            "a": "To delete all messages of replied user.",
-            "s": "To delete all messages of replied user with the given query.",
+        "امـر اضافـي": {
+            "الكل": "To delete all messages of replied user.",
+            "كلمة": "To delete all messages of replied user with the given query.",
         },
-        "usage": [
+        "الاستخـدام": [
             "{tr}upurge <count> <reply>",
             "{tr}upurge -a <count(optional)> <reply>",
             "{tr}upurge -s <query> <reply>",
         ],
-        "examples": [
-            "{tr}upurge 10",
+        "مثــال": [
+            "{tr}حذف رسائله 10",
             "{tr}upurge -s fuck",
             "{tr}upurge -a",
         ],
@@ -500,10 +523,10 @@ async def fast_purger(event):  # sourcery no-metrics
     reply = await event.get_reply_message()
     if not reply or reply.sender_id is None:
         return await edit_delete(
-            event, "**Error**\n__This cmd Works only if you reply to user message.__"
+            event, "**- خطـأ :**\n__This cmd Works only if you reply to user message.__"
         )
     if not flag:
-        if input_str and p_type == "s":
+        if input_str and p_type == "كلمة":
             async for msg in event.client.iter_messages(
                 event.chat_id,
                 search=input_str,
@@ -564,16 +587,55 @@ async def fast_purger(event):  # sourcery no-metrics
     if msgs:
         await event.client.delete_messages(chat, msgs)
     if count > 0:
-        result += "__Fast purge completed!\nPurged __`" + str(count) + "` __messages.__"
+        result += "**- حـذف رسائلـه تم بنجـاح ✅**\n**- تم حـذف** " + str(count) + "**رسالـه 🗑**"
     if error != "":
-        result += f"\n\n**Error:**{error}"
+        result += f"\n\n**- خطـأ :**{error}"
     if not result:
-        result += "__There are no messages to purge.__"
+        result += "**- عـذراً .. الرسـالة غيـر موجـودة**"
     hi = await event.client.send_message(event.chat_id, result)
     if BOTLOG:
         await event.client.send_message(
             BOTLOG_CHATID,
-            f"#UPURGE \n{result}",
+            f"#حـذف_رسائلـه \n{result}",
         )
     await sleep(5)
     await hi.delete()
+
+AsheqDelete_cmd = (
+"[ᯓ 𝗬𝗮𝗺𝗲𝗻𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - اوامــر الحــذف 🗑️ ](t.me/YamenThon) ."
+"**⋆─┄─┄─┄─┄──┄─┄─┄─┄─⋆**\n"
+
+"⚉ `.حذف`\n"
+"**⪼ الوصف:** حذف رسالة معينة.\n"
+"**⪼ الاستخدام:** قم بالرد على أي رسالة تريد حذفها، ثم أرسل الأمر `.حذف`\n\n"
+
+"⚉ `.حذف رسائلي`\n"
+"**⪼ الوصف:** حذف جميع رسائلك.\n"
+"**⪼ الاستخدام:** ارسل الامر داخل محادثه الخاص تريد حذف رسائلك منها\n\n"
+
+"⚉ `.حذف رسائله`\n"
+"**⪼ الوصف:** حذف جميع رسائله.\n"
+"**⪼ الاستخدام:** ارسل الامر داخل محادثه الخاص تريد حذف رسائله وكل الرسائل منها\n\n"
+
+"⚉ `.حذف الكل`\n"
+"**⪼ الوصف:** حذف جميع الرسائل المرسلة من حسابك داخل الدردشة.\n"
+"**⪼ الاستخدام:** أرسل الأمر مباشرة `.حذف الكل` داخل أي محادثة.\n\n"
+
+"⚉ `.حذف بالعدد <عدد>`\n"
+"**⪼ الوصف:** حذف عدد محدد من الرسائل الأخيرة.\n"
+"**⪼ الاستخدام:** أرسل الأمر مع تحديد العدد، مثال ↶ `.حذف بالعدد 10`\n\n"
+
+"⚉ `.تنظيف`\n"
+"**⪼ الوصف:** تنظيف الدردشة من الرسائل المرسلة بواسطة البوت أو الحساب.\n"
+"**⪼ الاستخدام:** أرسل الأمر `.تنظيف` مباشرة.\n\n"
+
+"⚉ `.حذف الردود`\n"
+"**⪼ الوصف:** حذف كل الردود اللي أرسلها البوت في المحادثة.\n"
+"**⪼ الاستخدام:** أرسل الأمر `.حذف الردود`.\n\n"
+
+"**⪼ الأوامر تغطي جميع احتياجاتك في الحذف ✨، والتحديثات مستمرة لإضافة المزيد ✓📥**\n\n"
+)
+
+@zedub.zed_cmd(pattern="الحذف")
+async def cmd(asheqqqq):
+    await edit_or_reply(asheqqqq, AsheqDelete_cmd)
