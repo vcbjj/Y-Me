@@ -195,28 +195,36 @@ async def purge_to(event):
         await edit_delete(event, f"**- خطـأ :**\n`{e}`")
 
 
-@zedub.zed_cmd(pattern="حذف رسائلي")
+@zedub.zed_cmd(pattern="حذف رسائلي(?:\s+(\d+))?$")
 async def purgeme(event):
-    message = event.text
-    if message: #Code by T.me/T_A_Tl
-        count = int(message[12:])
-    else: #Code by T.me/T_A_Tl
-        count = int(10000)
+    # ناخذ الرقم اللي بعد الامر اذا موجود
+    input_str = event.pattern_match.group(1)
+
+    if not input_str:
+        return await edit_or_reply(
+            event,
+            "**✧ يجب أن تكتب عدد الرسائل المراد حذفها.**\n\n"
+            "**مثال الاستخدام:**\n"
+            "`.حذف رسائلي 50` **→ لحذف 50 رسالة من رسائلك.**"
+        )
+
+    count = int(input_str)
+
     i = 1
     async for message in event.client.iter_messages(event.chat_id, from_user="me"):
-        if i > count + 1:
+        if i > count:
             break
         i += 1
         await message.delete()
 
     smsg = await event.client.send_message(
         event.chat_id,
-        f"**❈╎تـم حـذف** " + str(count) + " **رسـالـة . . بنجـاح ☑️**",
+        f"**❈╎تـم حـذف {count} رسـالـة . . بنجـاح ☑️**",
     )
     if BOTLOG:
         await event.client.send_message(
             BOTLOG_CHATID,
-            "#حـذف_رسـائلي \n\n**❈╎تـم حـذف** " + str(count) + "**رسـالـة . . بنجـاح ☑️**",
+            f"#حـذف_رسـائلي \n\n**❈╎تـم حـذف {count} رسـالـة . . بنجـاح ☑️**",
         )
     await sleep(5)
     await smsg.delete()
