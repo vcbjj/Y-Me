@@ -77,7 +77,7 @@ async def fetch_info(replied_user, event):
     user_id = replied_user.id
     first_name = replied_user.first_name
     full_name = FullUser.private_forward_name
-    common_chat = FullUser.common_chats_count
+    common_chat = FullUser.common_chats_count or 0
     username = replied_user.username
     user_bio = FullUser.about
     is_bot = replied_user.bot
@@ -305,6 +305,7 @@ async def potocmd(event):
         send_photos = await event.client.download_media(photos[uid - 1])
         await event.client.send_file(event.chat_id, send_photos)
     await event.delete()
+
 
 
 
