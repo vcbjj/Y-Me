@@ -1,9 +1,11 @@
-# reverse search and google search  plugin for yamenthon
+# reverse search and google search plugin for yamenthon
 import contextlib
 import os
 import re
 import urllib
 from datetime import datetime
+import asyncio
+import random
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,14 +21,20 @@ from ..helpers.functions import deEmojify
 from ..helpers.utils import reply_id
 
 opener = urllib.request.build_opener()
-useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
-opener.addheaders = [("User-agent", useragent)]
+user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64)",
+]
+# اختَر User-Agent عشوائي عند تحميل الموديول (يمكن تغييره لاحقًا إن أردت تدوير كل طلب)
+opener.addheaders = [("User-Agent", random.choice(user_agents))]
 
 plugin_category = "البحث"
 
 
 async def ParseSauce(googleurl):
     """Parse/Scrape the HTML code for the info we want."""
+    # نستخدم opener (مع User-Agent المحدد أعلاه)
     source = opener.open(googleurl).read()
     soup = BeautifulSoup(source, "html.parser")
     results = {"similar_images": "", "best_guess": ""}
@@ -42,6 +50,10 @@ async def ParseSauce(googleurl):
 
 
 async def scam(results, lim):
+    """
+    يقرأ صفحة الصور المماثلة التي حصلنا عليها من ParseSauce ثم يجمع روابط الصور.
+    أضفنا sleep عشوائي بين كل طلب لتخفيف الضغط وتقليل فرص الحصول على 429.
+    """
     single = opener.open(results["similar_images"]).read()
     decoded = single.decode("utf-8")
     imglinks = []
@@ -52,9 +64,60 @@ async def scam(results, lim):
         counter += 1
         if counter <= int(lim):
             imglinks.append(imglink)
+            # تأخير عشوائي بسيط بين طلب وآخر حتى لا يبدو الاتّصال بوتي جداً
+            await asyncio.sleep(random.uniform(1.5, 3.5))
         else:
             break
     return imglinks
+
+
+async def reverse_image_search(image_path, lim=3):
+    """
+    تحميل الصورة إلى Google Reverse Image Search أولًا.
+    إذا نجح: ترجع ("google", results_dict, fetchUrl)
+    إذا فشل (مثل 429) → ترجع fallback رسالة لـ Bing/Yandex بشكل مقروء:
+        ("bing", ["رسالة توضيحية"], None)
+    """
+    # جرب Google أولًا
+    try:
+        # افتح الملف بطريقة تضمن إغلاقه
+        with open(image_path, "rb") as f:
+            multipart = {"encoded_image": (image_path, f), "image_content": ""}
+            searchUrl = "https://www.google.com/searchbyimage/upload"
+            response = requests.post(searchUrl, files=multipart, allow_redirects=False, timeout=30)
+
+        # تحقق من حالة الرد
+        # Google عادة يعيد 302 مع ترويسة Location التي تُمثّل صفحة النتائج
+        if response.status_code == 429:
+            # حُدّث Rate limit
+            raise Exception("Google rate limit (429)")
+
+        if "Location" not in response.headers:
+            # لم نحصل على رابط نتائج Google — نعتبرها فشل
+            raise Exception(f"Unexpected Google response: {response.status_code}")
+
+        fetchUrl = response.headers.get("Location")
+        # احصل على نتائج ParseSauce من الصفحة المحوّلة
+        results = await ParseSauce(f"{fetchUrl}&preferences?hl=en&fg=1#languages")
+        # إرجاع نتائج Google مع رابط الصفحة (fetchUrl)
+        return ("google", results, fetchUrl)
+
+    except Exception as google_err:
+        # لو فشل Google — لا نحاول رفع الصورة إلى Bing لأن search_engine_parser لا يدعم Reverse Image مباشرة
+        # لذلك نُرجع رسالة بديلة تقترح الحلول للمستخدم (fallback)
+        try:
+            # بديل نصي: نستخدم Bing/GSearch text search كحل مؤقت (لن يكون بحث عكسي حقيقي)
+            # لكن نستطيع محاولة استخراج "أقرب وصف" من اسم الملف أو تحذير المستخدم
+            # هنا سنُعيد رسالة توضيحية لـ Bing
+            bing_msg = [
+                "تعذر الحصول على نتيجة مباشرة من Google (سبب: {}).".format(str(google_err)),
+                "كحل مؤقت: حاول استخدام نتائج البحث النصي في Bing أو استخدام Yandex reverse image عبر المتصفح.",
+                "ملاحظة: مكتبة search_engine_parser لا تدعم رفع صور للبحث العكسي في Bing، لذلك البحث اليدوي قد يكون الضروري."
+            ]
+            return ("bing", bing_msg, None)
+        except Exception:
+            # في حال فشل كل شيء نعيد رسالة موحّدة
+            return ("yandex", ["ما قدرت أجيب نتائج من Google أو Bing 😅 — جرّب البحث اليدوي في Yandex أو الموقع المباشر."], None)
 
 
 @zedub.zed_cmd(
@@ -269,41 +332,70 @@ async def reverse(event):
     name = "okgoogle.png"
     image.save(name, "PNG")
     image.close()
-    # https://stackoverflow.com/questions/23270175/google-reverse-image-search-using-post-request#28792943
-    searchUrl = "https://www.google.com/searchbyimage/upload"
-    multipart = {"encoded_image": (name, open(name, "rb")), "image_content": ""}
-    response = requests.post(searchUrl, files=multipart, allow_redirects=False)
-    if response != 400:
-        await event.edit(
-            "**تم تحميل الصورة بنجاح إلى جوجل✓**"
-            "\n**جـارِ تحليل المصدر الآن...**"
-        )
-    else:
-        return await catevent.edit("`Unable to perform reverse search.`")
-    fetchUrl = response.headers["Location"]
-    os.remove(name)
-    match = await ParseSauce(f"{fetchUrl}&preferences?hl=en&fg=1#languages")
-    guess = match["best_guess"]
-    imgspage = match["similar_images"]
-    if guess and imgspage:
-        await catevent.edit(f"[{guess}]({fetchUrl})\n\n**البحث عن هذه الصورة ...**")
-    else:
-        return await catevent.edit("**معـذرةً لم استطـع ايجـاد نتائـج مشابهـه**")
+
+    # عدد الصور المطلوب إرسالها (مبدئيًا 3 إذا لم يُكتب عدد)
     lim = event.pattern_match.group(1) or 3
-    images = await scam(match, lim)
-    yeet = []
-    for i in images:
-        k = requests.get(i)
-        yeet.append(k.content)
-    with contextlib.suppress(TypeError):
-        await event.client.send_file(
-            entity=await event.client.get_input_entity(event.chat_id),
-            file=yeet,
-            reply_to=reply_to,
-        )
-    await catevent.edit(
-        f"[{guess}]({fetchUrl})\n\n[لصـور مشابهـه اخـرى اضغط هنا...]({imgspage})"
-    )
+    try:
+        lim = int(lim)
+    except Exception:
+        lim = 3
+
+    # استدعاء دالة البحث المعتمدة على Google (مع fallback توضيحي)
+    source, results, fetchUrl = await reverse_image_search(name, lim=int(lim))
+
+    if source == "google":
+        # نتائج Google هي dict من ParseSauce: يحتوي على best_guess و similar_images
+        guess = results.get("best_guess", "لا يوجد تخمين")
+        imgspage = results.get("similar_images", "")
+        # استخدم fetchUrl المعاد لعرض رابط صفحة النتائج (لو وُجد)
+        if fetchUrl:
+            await catevent.edit(f"[{guess}]({fetchUrl})\n\n**البحث عن هذه الصورة ...**")
+        else:
+            await catevent.edit(f"**أفضل تخمين:** {guess}\n\n**البحث عن هذه الصورة ...**")
+
+        # جلب روابط الصور المشابهة ثم إرسالهـا
+        images = await scam(results, lim)
+        yeet = []
+        for i in images:
+            try:
+                k = requests.get(i, timeout=30)
+                yeet.append(k.content)
+            except Exception:
+                # تجاهل أي رابط فاشل
+                continue
+
+        with contextlib.suppress(TypeError):
+            await event.client.send_file(
+                entity=await event.client.get_input_entity(event.chat_id),
+                file=yeet,
+                reply_to=reply_to,
+            )
+
+        # عرض رابط صفحة الصور المشابهة (إن وُجد)
+        if imgspage:
+            if fetchUrl:
+                await catevent.edit(
+                    f"[{guess}]({fetchUrl})\n\n[لصـور مشابهـه اخـرى اضغط هنا...]({imgspage})"
+                )
+            else:
+                await catevent.edit(
+                    f"**أفضل تخمين:** {guess}\n\n[لصـور مشابهـه اخـرى اضغط هنا...]({imgspage})"
+                )
+    elif source == "bing":
+        # عرض رسالة بديلة لأننا لا نملك بحث عكسي مباشر هنا
+        # results هو قائمة رسائل إيضاحية
+        msg = "\n".join(results) if isinstance(results, (list, tuple)) else str(results)
+        await catevent.edit(f"✧ fallback (Bing) — ملاحظة:\n\n{msg}")
+    else:
+        # fallback عام أو yandex
+        msg = results[0] if isinstance(results, (list, tuple)) else str(results)
+        await catevent.edit(f"✧ fallback (Yandex) — ملاحظة:\n\n{msg}")
+
+    # احذف الملف المؤقت
+    try:
+        os.remove(name)
+    except Exception:
+        pass
 
 
 @zedub.zed_cmd(
