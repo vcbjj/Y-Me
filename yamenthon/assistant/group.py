@@ -16,7 +16,7 @@ from yamenthon import Config, zedub
 from ..core.session import tgbot
 from ..core.logger import logging as logger_core
 from .. import BOTLOG, BOTLOG_CHATID
-from yamenthon.plugins.mention import mention
+from yamenthon.plugins import mention
 
 LOGS = logger_core.getLogger("يمنثون.group_plugin")
 
