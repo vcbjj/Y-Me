@@ -24,8 +24,8 @@ dp = Dispatcher()  # يمكن للمشروع الرئيسي استعمال هذ�
 router = Router()  # هذا الروتر يجب أن تُدرجه في المشروع الرئيسي
 
 # ===== إعداد Telethon fallback (لا تغيّر منطقك) =====
-API_ID = getattr(Config, "API_ID", 100000)
-API_HASH = getattr(Config, "API_HASH", "placeholder")
+API_ID = Config.APP_ID
+API_HASH = Config.API_HASH
 
 SESSIONS_FILE = "sessions.json"
 user_states = {}  # لحفظ حالة المستخدم (انتظر جلسة)
