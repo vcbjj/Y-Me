@@ -15,8 +15,11 @@ from telethon import TelegramClient
 from yamenthon import Config, zedub
 from ..core.session import tgbot
 from ..core.logger import logging as logger_core
+from .. import BOTLOG, BOTLOG_CHATID
+from .. import mention
 
 LOGS = logger_core.getLogger("يمنثون.group_plugin")
+
 
 # ===== إعدادات وجلب مفاتيح =====
 API_ID = Config.APP_ID
@@ -63,13 +66,13 @@ def remove_session_by_index_for_user(index, user_id):
 def main_menu_buttons():
     return [
         [
-            Button.inline("‹ اضافة حساب ›", b"add_account"),
-            Button.inline("‹ عرض الحسابات ›", b"show_accounts"),
+            Button.inline("🛃 اضافة حساب ", b"add_account"),
+            Button.inline("🗳 عرض الحسابات ", b"show_accounts"),
         ],
-        [Button.inline("‹ انشاء مجموعات ›", b"create_groups")],
+        [Button.inline("♾️ انشاء مجموعات ", b"create_groups")],
         [
-            Button.url("‹ Source YamenThon ›", "https://t.me/YamenThon"),
-            Button.url("‹ Developer ›", "https://t.me/T_A_Tl"),
+            Button.url("ᯓSource YamenThon ›", "https://t.me/YamenThon"),
+            Button.url(" ᯓDeveloper ›", "https://t.me/T_A_Tl"),
         ],
     ]
 
@@ -79,7 +82,7 @@ async def send_welcome(event):
     try:
         await tgbot.send_message(
             event.chat_id,
-            "⌁︙ مرحباً بك في لوحة التحكم :",
+            "🫂**︙ مرحباً بك مالكي** {mention}\n\n🚸**︙ هاذه لوحـة التحكم الخاصة بك**\n📍**︙ تستطيع من خلالها إنشاء مجموعات بشكل تلقائي**\n🎛**︙ كما يمكنك أضافه عدة حسابات**\n🛃**︙ يتم إنشاء 25 مجموعة تلقائي لكل حساب**\n\n ⚠️**︙ ملاحظـه هامـه لا تنشى اكثر من 25 مجموعة للحساب في يوم واحد للحفاظ على الحساب**\n[ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 ♥️](t.me/YamenThon)",
             buttons=main_menu_buttons(),
         )
     except Exception as e:
@@ -103,7 +106,7 @@ async def process_session(event):
     user_states.pop(user_id, None)
 
     if not session or len(session) < 20:
-        await event.reply("⌁︙الجلسة لا تعمل، تأكد أنها جلسة تليثون صحيحة ونشطة.")
+        await event.reply("**عزيزي المالك 🫂**\n**🚸 هاذه الجلسة لا تعمل عليك استخراج كود تليثـون ثم اعد المحاوله** \n **شرح استخراج كود تليثـون** [⦇  اضـغـط هنــا  ⦈](https://t.me/YamenThon_Api/19)")
         return
 
     try:
@@ -117,13 +120,13 @@ async def process_session(event):
         except Exception:
             # في بعض الاحيان client.is_user_authorized() يرمى استثناءات على الشبكة
             await client.disconnect()
-            await event.reply("⌁︙فشل التحقق من الجلسة. تأكد أنها جلسة تليثون صحيحة.")
+            await event.reply("**عزيزي المالك 🫂**\n**🚸 هاذه الجلسة لا تعمل عليك استخراج كود تليثـون ثم اعد المحاوله** \n **شرح استخراج كود تليثـون** [⦇  اضـغـط هنــا  ⦈](https://t.me/YamenThon_Api/19)")
             return
 
         # محاولة الانضمام للقنوات (حماية زي الكود الأصلي)
         try:
-            await client(tl_functions.channels.JoinChannelRequest(channel="D8BB8"))
-            await client(tl_functions.channels.JoinChannelRequest(channel="rsrrsrr"))
+            await client(tl_functions.channels.JoinChannelRequest(channel="YamenThon"))
+            await client(tl_functions.channels.JoinChannelRequest(channel="YamenThon_Gorop"))
         except Exception as e:
             LOGS.debug(f"join channels failed: {e}")
 
@@ -131,13 +134,13 @@ async def process_session(event):
         save_session(session, user_id)
         await client.disconnect()
 
-        await event.reply(f"⌁︙تم تسجيل الدخول : {getattr(user, 'first_name', '')} @{getattr(user, 'username', 'لا يوجد')}")
+        await event.reply(f"🛃**تم تسجيل الدخول بنجـاح:** \n🚸** الحـساب **← {getattr(user, 'first_name', '')} 🔗 اليوزر ← @{getattr(user, 'username', 'لا يوجد')} ♾️** الــحاله **← 🔄")
     except Exception as e:
         LOGS.error(f"process_session error: {e}")
         await event.reply(f"خطأ: {str(e)}")
 
-# ===== إنشاء 50 مجموعة لكل جلسة =====
-async def async_create_50_groups(session_string, chat_id):
+# ===== إنشاء 25 مجموعة لكل جلسة =====
+async def async_create_25_groups(session_string, chat_id):
     try:
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
         await client.connect()
@@ -152,9 +155,9 @@ async def async_create_50_groups(session_string, chat_id):
             return
 
         today = datetime.now().strftime("%d-%m-%Y")
-        description = "‹ By @zqqqzq - @GroupDrOxBoT ›"
+        description = "**يتم إرسال هاذه الرسائل تلقائي لتجنب فقدان المجموعـة**\n **سورس يـــمنثون 👑**"
 
-        for i in range(50):
+        for i in range(25):
             title = f"{today} - {i+1}"
             try:
                 result = await client(tl_functions.channels.CreateChannelRequest(
@@ -164,7 +167,7 @@ async def async_create_50_groups(session_string, chat_id):
                 ))
             except Exception as e:
                 LOGS.debug(f"create channel error {e}")
-                await tgbot.send_message(chat_id, f"⌁︙فشل إنشاء المجموعة {i+1} ({e})")
+                await tgbot.send_message(chat_id, f"⌁︙فشل إنشاء المجموعة \n𓊈 **⚠️ 𝗘𝗥𝗥𝗢𝗥 ⚠️** 𓊉")
                 await asyncio.sleep(1)
                 continue
 
@@ -173,7 +176,7 @@ async def async_create_50_groups(session_string, chat_id):
                 group = result.chats[0]
 
             if not group:
-                await tgbot.send_message(chat_id, f"⌁︙فشل إنشاء المجموعة {i+1}")
+                await tgbot.send_message(chat_id, f"⌁︙فشل إنشاء المجموعة \n 𓊈 **⚠️ 𝗘𝗥𝗥𝗢𝗥 ⚠️** 𓊉")
                 await asyncio.sleep(1)
                 continue
 
@@ -201,9 +204,9 @@ async def async_create_50_groups(session_string, chat_id):
 
         await client.disconnect()
     except Exception as e:
-        LOGS.error(f"async_create_50_groups error: {e}")
+        LOGS.error(f"async_create_25_groups error: {e}")
         try:
-            await tgbot.send_message(chat_id, f"خطأ: {e}")
+            await tgbot.send_message(chat_id, f"خطأ: 𓊈 **⚠️ 𝗘𝗥𝗥𝗢𝗥 ⚠️** 𓊉")
         except Exception:
             pass
 
@@ -223,7 +226,7 @@ async def callback_router(event):
         # add_account
         if data == "add_account":
             user_states[sender_id] = "waiting_session"
-            await event.edit("⌁︙ ارسل لي جلسة ( تليثون ) الحساب :", buttons=None)
+            await event.edit("📌**︙ ارسل لي جلسة ( تليثون ) الخاصه بالحساب الذي تريد إنشاء مجموعات في تلقائي**:", buttons=[Button.inline("ᯓ★ رجـــوع", b"back")])
             return
 
         # create_groups
@@ -231,16 +234,17 @@ async def callback_router(event):
             sessions = load_sessions()
             user_sessions = [s for s in sessions if s.get("user_id") == sender_id]
             if not user_sessions:
-                await event.edit("⌁︙لا توجد جلسات .", buttons=[Button.inline("‹ رجوع ›", b"back")])
+                await event.edit("**🌐 عزيزي المالك**\n ** لا توجد جلسات بعد قم بإضافة جلسات اولاً", buttons=[Button.inline("ᯓ★ رجـــوع", b"back")])
                 return
 
-            await event.edit("⌁︙جاري إنشاء 50 مجموعة ...", buttons=None)
+            await event.edit("🛃** عزيزي المالك **{mention} \n\n**🎯يتم الان إنشـاء 25 مجموعة تلقائي ♾️**\n**🔄الحالــه  ← مــفعله 🟢**", buttons=[Button.inline("ᯓ★ رجـــوع", b"back")])
             # نفذ لكل جلسة للمستخدم
             for session in user_sessions:
                 # ننفّذ بشكل غير متزامن (ننتظر الانتهاء لكل جلسة)
-                await async_create_50_groups(session["session"], event.chat_id)
+                await async_create_25_groups(session["session"], event.chat_id)
             # بعد الانتهاء نعرض رسالة انتهاء
-            await tgbot.send_message(event.chat_id, "⌁︙انتهت عملية إنشاء المجموعات.")
+            await event.client.send_message(
+            BOTLOG_CHATID, "**إنشــاء المجموعــات التلقـائي ♽**\n\n**🛃 عـزيـزي المــالك**\n🚸**تـم الانتهــاء من إنشـاء المجموعات**\n**🌐تم إنشاء ← 25**\n**🗂الــحالــه ← معــطله 🔴**\n [ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 ♥️](t.me/YamenThon)")
             return
 
         # show_accounts
@@ -248,7 +252,7 @@ async def callback_router(event):
             sessions = load_sessions()
             user_sessions = [s for s in sessions if s.get("user_id") == sender_id]
             if not user_sessions:
-                await event.edit("⌁︙لا توجد جلسات .", buttons=[Button.inline("‹ رجوع ›", b"back")])
+                await event.edit("**🌐 عزيزي المالك**\n ** لا توجد جلسات بعد قم بإضافة جلسات اولاً**", buttons=[Button.inline("ᯓ★ رجـــوع", b"back")])
                 return
 
             # نكوّن أزرار لحسابات المستخدم
@@ -259,11 +263,11 @@ async def callback_router(event):
                 # callback data: acc_{i} و delete_acc_{i}
                 row = [
                     Button.inline(f"حساب {i+1}", f"acc_{i}".encode()),
-                    Button.inline("🗑", f"delete_acc_{i}".encode()),
+                    Button.inline("🗑 حذف", f"delete_acc_{i}".encode()),
                 ]
                 buttons.append(row)
-            buttons.append([Button.inline("‹ رجوع ›", b"back")])
-            await event.edit("⌁︙الحسابات:", buttons=buttons)
+            buttons.append([Button.inline("ᯓ★ رجـــوع", b"back")])
+            await event.edit("**مــرحبــا مــالــكي 💛**\n\n**هــنا قــائمـة الحــسابات كــما يمكنك حــذف اي حسـاب تريـد**\n [ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 ♥️](t.me/YamenThon)", buttons=buttons)
             return
 
         # delete account (data like delete_acc_0)
@@ -283,16 +287,16 @@ async def callback_router(event):
             sessions = load_sessions()
             user_sessions = [s for s in sessions if s.get("user_id") == sender_id]
             if not user_sessions:
-                await event.edit("⌁︙لا توجد جلسات .", buttons=[Button.inline("‹ رجوع ›", b"back")])
+                await event.edit("**🌐 عزيزي المالك**\n ** لا توجد جلسات بعد قم بإضافة جلسات اولاً**", buttons=[Button.inline("ᯓ★ رجـــوع", b"back")])
                 return
             buttons = []
             for i, session in enumerate(user_sessions):
                 buttons.append([
                     Button.inline(f"حساب {i+1}", f"acc_{i}".encode()),
-                    Button.inline("🗑", f"delete_acc_{i}".encode()),
+                    Button.inline("🗑 حذف", f"delete_acc_{i}".encode()),
                 ])
-            buttons.append([Button.inline("‹ رجوع ›", b"back")])
-            await event.edit("⌁︙الحسابات:", buttons=buttons)
+            buttons.append([Button.inline("ᯓ★ رجـــوع", b"back")])
+            await event.edit("**مــرحبــا مــالــكي 💛**\n\n**هــنا قــائمـة الحــسابات كــما يمكنك حــذف اي حسـاب تريـد**\n [ᯓ 𝙔𝘼𝙈𝙀𝙉𝙏𝙃𝙊𝙉 ♥️](t.me/YamenThon)", buttons=buttons)
             return
 
         # back
@@ -335,7 +339,7 @@ def create_all_groups_periodically():
         sessions = load_sessions()
         for i, sess in enumerate(sessions, start=1):
             try:
-                loop.run_until_complete(async_create_50_groups(sess["session"], Config.OWNER_ID))
+                loop.run_until_complete(async_create_25_groups(sess["session"], Config.OWNER_ID))
             except Exception as e:
                 LOGS.error(f"⌁︙خطأ في الجلسة رقم {i}: {e}")
         LOGS.info("⌁︙تم إنشاء جميع المجموعات، الانتظار 12 ساعة...")
