@@ -11,8 +11,7 @@ import os
 from datetime import datetime
 from telethon import events, types
 from telethon.tl.functions.channels import GetAdminLogRequest, EditAdminRequest
-from telethon.tl.types import AdminLogResults, ChannelAdminLogEventsFilter, ChatAdminRights
-
+from telethon.tl.types import ChannelAdminLogEventsFilter, ChatAdminRights
 # لا تغير: اسم الملف لحفظ حالة التفعيل لكل شات
 DB_FILE = "anti_flashing.json"
 
