@@ -221,4 +221,4 @@ async def monitor_kicks(event):
 
 5. إذا واجهت مشكلة في التعرف على من نفذ الطرد، يمكنك زيادة limit في GetAdminLogRequest أو تسجيل السجلات (logging).
 
-""
+"""
