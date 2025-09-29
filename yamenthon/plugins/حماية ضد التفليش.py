@@ -34,7 +34,7 @@ def save_db(db):
 
 
 # ===================== استدعاءات سورس يمنثون =====================
-from yamenthon import zedub, bot
+from yamenthon import zedub
 from ..Config import Config
 from . import BOTLOG, BOTLOG_CHATID
 
