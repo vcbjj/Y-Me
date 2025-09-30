@@ -247,7 +247,10 @@ async def monitor_admin_logs():
                         min_id=0,
                         max_id=0,
                         limit=limit,
-                        events_filter=ChannelAdminLogEventsFilter(kick=True),
+                        events_filter=ChannelAdminLogEventsFilter(
+                                  kick=True,
+                                  ban=True
+                                   ),
                         admins=[]
                     ))
 
