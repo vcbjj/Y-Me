@@ -12,12 +12,12 @@
 
 from datetime import datetime
 from telethon import events
+from telethon.tl.types import ChatAdminRights
 from yamenthon import zedub
 from . import gvarstatus, addgvar, delgvar
 
 # ===================== المتغيرات =====================
-# تخزين آخر وقت طرد لكل مشرف
-remove_admins_aljoker = {}
+remove_admins_aljoker = {}  # تخزين آخر وقت طرد لكل مشرف
 
 # ===================== مراقبة الطرد =====================
 @zedub.on(events.ChatAction)
@@ -48,10 +48,8 @@ async def Hussein(event):
                             f"**᯽︙ تم تنزيل المشرف {yamen_link} بسبب قيامه بمحاولة تفليش 🤣**"
                         )
 
-                        # تنزيله من الإدارة
-                        await event.client.edit_admin(
-                            chat,
-                            user_id,
+                        # إعداد صلاحيات فارغة
+                        rights = ChatAdminRights(
                             change_info=False,
                             post_messages=False,
                             edit_messages=False,
@@ -62,8 +60,16 @@ async def Hussein(event):
                             add_admins=False,
                             manage_call=False,
                             anonymous=False,
-                            other=False,
                         )
+
+                        # تنزيله من الإدارة
+                        await event.client.edit_admin(
+                            chat,
+                            user_id,
+                            rights,
+                            rank="",
+                        )
+
                     except Exception as e:
                         await event.reply(f"⚠️ حدث خطأ أثناء محاولة تنزيل المشرف: {str(e)}")
 
