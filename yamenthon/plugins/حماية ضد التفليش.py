@@ -64,7 +64,7 @@ last_kick_time = {}
 processed_event_ids = {}  # chat_id -> last_event_id
 
 # وقت الانتظار بين كل فحص لسجلات الإدارة (بالثواني)
-ADMINLOG_POLL_INTERVAL = 8
+ADMINLOG_POLL_INTERVAL = 5
 
 
 # ===================== دالة مساعدة لاستخراج actor id من حدث السجل =====================
