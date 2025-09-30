@@ -1,19 +1,3 @@
-"""
-📌 منع التفليش (Anti-Kick Flood) - سورس يمنثون
-
-- الأوامر:
-  .منع التفليش   ← تفعيل حماية منع التفليش
-  .سماح التفليش  ← تعطيل حماية منع التفليش
-
-- يدعم:
-  ✅ المجموعات العادية
-  ✅ السوبرجروب
-  ✅ القنوات (broadcast + discussion)
-
-- عند محاولة أي مشرف طرد عدة أعضاء بسرعة (تفليش)،
-  يتم تنزيله مباشرة من الإدارة وإرسال تنبيه إلى مجموعة السجلات BOTLOG_CHATID.
-"""
-
 from datetime import datetime
 from telethon import events
 from telethon.tl.types import ChatAdminRights, Channel, ChannelAdminLogEvent
@@ -25,10 +9,9 @@ from . import gvarstatus, addgvar, delgvar, BOTLOG_CHATID
 # ===================== المتغيرات =====================
 remove_admins_aljoker = {}  # تخزين آخر وقت طرد لكل مشرف
 
-
 # ===================== دالة عزل المشرف =====================
-async def demote_admin(client, chat, user_id, admin_info, reason="تفليش"):
-    rights = ChatAdminRights(  # نسحب كل صلاحياته
+async def demote_admin(client, chat, user_id, admin_info):
+    rights = ChatAdminRights(
         change_info=False,
         post_messages=False,
         edit_messages=False,
@@ -40,14 +23,8 @@ async def demote_admin(client, chat, user_id, admin_info, reason="تفليش"):
         manage_call=False,
         anonymous=False,
     )
-
     await client(
-        EditAdminRequest(
-            channel=chat,
-            user_id=user_id,
-            admin_rights=rights,
-            rank=""  # تفريغ الرتبة
-        )
+        EditAdminRequest(channel=chat, user_id=user_id, admin_rights=rights, rank="")
     )
 
     yamen_link = f"[{admin_info.first_name}](tg://user?id={admin_info.id})"
@@ -66,66 +43,52 @@ async def demote_admin(client, chat, user_id, admin_info, reason="تفليش"):
     else:
         await client.send_message(chat.id, msg)
 
-
 # ===================== مراقبة الطرد =====================
 @zedub.on(events.ChatAction)
 async def monitor_kicks(event):
     chat = await event.get_chat()
-    if not chat:
-        return
-
-    if not gvarstatus(f"Mn3_Kick_{chat.id}"):
+    if not chat or not gvarstatus(f"Mn3_Kick_{chat.id}"):
         return
 
     is_channel = isinstance(chat, Channel)
+    now = datetime.now()
 
-    try:
-        # --- الحالة الأولى: مجموعات / سوبرجروب ---
-        if getattr(event, "user_kicked", False):
-            user_id = getattr(getattr(event.action_message, "from_id", None), "user_id", None)
-            if not user_id:
-                return
-
-            now = datetime.now()
-            if user_id in remove_admins_aljoker and (now - remove_admins_aljoker[user_id]).seconds < 60:
-                try:
-                    admin_info = await event.client.get_entity(user_id)
-                    await demote_admin(event.client, chat, user_id, admin_info)
-                except Exception as e:
-                    await event.reply(f"⚠️ خطأ عند محاولة عزل المشرف:\n`{str(e)}`")
-
-            remove_admins_aljoker[user_id] = now
+    # --- مجموعات / سوبرجروب ---
+    if getattr(event, "user_kicked", False):
+        user_id = getattr(getattr(event.action_message, "from_id", None), "user_id", None)
+        if not user_id:
             return
 
-        # --- الحالة الثانية: قنوات (سجل الإدارة) ---
-        if is_channel:
-            result = await event.client(
-                GetAdminLogRequest(
-                    channel=chat,
-                    q="",
-                    max_id=0,
-                    min_id=0,
-                    limit=5,
-                )
-            )
+        if user_id in remove_admins_aljoker and (now - remove_admins_aljoker[user_id]).seconds < 60:
+            try:
+                admin_info = await event.client.get_entity(user_id)
+                await demote_admin(event.client, chat, user_id, admin_info)
+            except Exception as e:
+                await event.reply(f"⚠️ خطأ عند محاولة عزل المشرف:\n`{str(e)}`")
 
+        remove_admins_aljoker[user_id] = now
+        return
+
+    # --- القنوات ---
+    if is_channel:
+        try:
+            result = await event.client(
+                GetAdminLogRequest(channel=chat, q="", max_id=0, min_id=0, limit=10)
+            )
             for entry in getattr(result, "events", []):
                 if isinstance(entry, ChannelAdminLogEvent) and entry.action:
                     action_name = entry.action.__class__.__name__
-                    if "ParticipantBan" in action_name:  # أي حدث طرد/حظر
+                    if "ParticipantBan" in action_name:
                         actor = entry.user_id
-                        now = datetime.now()
                         if actor in remove_admins_aljoker and (now - remove_admins_aljoker[actor]).seconds < 60:
                             try:
                                 admin_info = await event.client.get_entity(actor)
                                 await demote_admin(event.client, chat, actor, admin_info)
                             except Exception as e:
-                                await event.client.send_message(chat.id, f"⚠️ خطأ في القناة عند العزل:\n`{str(e)}`")
+                                await event.client.send_message(chat.id, f"⚠️ خطأ عند العزل:\n`{str(e)}`")
                         remove_admins_aljoker[actor] = now
-
-    except Exception:
-        return
-
+        except Exception:
+            pass
 
 # ===================== الأوامر =====================
 @zedub.zed_cmd(pattern="منع التفليش", require_admin=True)
@@ -133,22 +96,17 @@ async def enable_antiflash(event):
     chat = await event.get_chat()
     if not chat:
         return await event.edit("⚠️︙ لا يمكن استخدام هذا الأمر هنا")
-
     if gvarstatus(f"Mn3_Kick_{chat.id}"):
         return await event.edit("ℹ️︙ حماية منع التفليش مفعلة مسبقًا هنا")
-
     addgvar(f"Mn3_Kick_{chat.id}", True)
     await event.edit("✅︙ تم تفعيل حماية منع التفليش في هذه المجموعة/القناة")
-
 
 @zedub.zed_cmd(pattern="سماح التفليش", require_admin=True)
 async def disable_antiflash(event):
     chat = await event.get_chat()
     if not chat:
         return await event.edit("⚠️︙ لا يمكن استخدام هذا الأمر هنا")
-
     if not gvarstatus(f"Mn3_Kick_{chat.id}"):
         return await event.edit("ℹ️︙ حماية منع التفليش معطلة مسبقًا هنا")
-
     delgvar(f"Mn3_Kick_{chat.id}")
     await event.edit("🛑︙ تم تعطيل حماية منع التفليش في هذه المجموعة/القناة")
