@@ -28,7 +28,7 @@ remove_admins_aljoker = {}  # تخزين آخر وقت طرد لكل مشرف
 
 # ===================== دالة عزل المشرف =====================
 async def demote_admin(client, chat, user_id, admin_info, reason="تفليش"):
-    rights = ChatAdminRights(
+    rights = ChatAdminRights(  # نسحب كل صلاحياته
         change_info=False,
         post_messages=False,
         edit_messages=False,
@@ -80,9 +80,9 @@ async def monitor_kicks(event):
     is_channel = isinstance(chat, Channel)
 
     try:
-        # --- الحالة الأولى: مجموعات / سوبرجروب (الحدث العادي) ---
+        # --- الحالة الأولى: مجموعات / سوبرجروب ---
         if getattr(event, "user_kicked", False):
-            user_id = getattr(event.action_message.from_id, "user_id", None)
+            user_id = getattr(getattr(event.action_message, "from_id", None), "user_id", None)
             if not user_id:
                 return
 
@@ -111,8 +111,8 @@ async def monitor_kicks(event):
 
             for entry in getattr(result, "events", []):
                 if isinstance(entry, ChannelAdminLogEvent) and entry.action:
-                    # نتحقق إذا كان الاكشن هو ParticipantBan (طرد/حظر)
-                    if entry.action.__class__.__name__ == "ChannelAdminLogEventActionParticipantBan":
+                    action_name = entry.action.__class__.__name__
+                    if "ParticipantBan" in action_name:  # أي حدث طرد/حظر
                         actor = entry.user_id
                         now = datetime.now()
                         if actor in remove_admins_aljoker and (now - remove_admins_aljoker[actor]).seconds < 60:
