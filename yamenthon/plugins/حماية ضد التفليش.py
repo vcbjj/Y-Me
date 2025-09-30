@@ -16,7 +16,7 @@
 
 from datetime import datetime
 from telethon import events
-from telethon.tl.types import ChatAdminRights, Channel, ChannelAdminLogEventActionBan
+from telethon.tl.types import ChatAdminRights, Channel, ChannelAdminLogEvent
 from telethon.tl.functions.channels import EditAdminRequest, GetAdminLogRequest
 
 from yamenthon import zedub
@@ -46,7 +46,7 @@ async def demote_admin(client, chat, user_id, admin_info, reason="تفليش"):
             channel=chat,
             user_id=user_id,
             admin_rights=rights,
-            rank=""
+            rank=""  # تفريغ الرتبة
         )
     )
 
@@ -70,11 +70,11 @@ async def demote_admin(client, chat, user_id, admin_info, reason="تفليش"):
 # ===================== مراقبة الطرد =====================
 @zedub.on(events.ChatAction)
 async def monitor_kicks(event):
-    if not gvarstatus("Mn3_Kick"):
-        return
-
     chat = await event.get_chat()
     if not chat:
+        return
+
+    if not gvarstatus(f"Mn3_Kick_{chat.id}"):
         return
 
     is_channel = isinstance(chat, Channel)
@@ -97,7 +97,7 @@ async def monitor_kicks(event):
             remove_admins_aljoker[user_id] = now
             return
 
-        # --- الحالة الثانية: قنوات (نستخدم سجل الإدارة) ---
+        # --- الحالة الثانية: قنوات (سجل الإدارة) ---
         if is_channel:
             result = await event.client(
                 GetAdminLogRequest(
@@ -109,17 +109,19 @@ async def monitor_kicks(event):
                 )
             )
 
-            for entry in getattr(result, "events", []) or getattr(result, "entries", []):
-                if isinstance(entry.action, ChannelAdminLogEventActionBan):
-                    actor = entry.user_id  # المشرف اللي نفذ الطرد
-                    now = datetime.now()
-                    if actor in remove_admins_aljoker and (now - remove_admins_aljoker[actor]).seconds < 60:
-                        try:
-                            admin_info = await event.client.get_entity(actor)
-                            await demote_admin(event.client, chat, actor, admin_info)
-                        except Exception as e:
-                            await event.client.send_message(chat.id, f"⚠️ خطأ في القناة عند العزل:\n`{str(e)}`")
-                    remove_admins_aljoker[actor] = now
+            for entry in getattr(result, "events", []):
+                if isinstance(entry, ChannelAdminLogEvent) and entry.action:
+                    # نتحقق إذا كان الاكشن هو ParticipantBan (طرد/حظر)
+                    if entry.action.__class__.__name__ == "ChannelAdminLogEventActionParticipantBan":
+                        actor = entry.user_id
+                        now = datetime.now()
+                        if actor in remove_admins_aljoker and (now - remove_admins_aljoker[actor]).seconds < 60:
+                            try:
+                                admin_info = await event.client.get_entity(actor)
+                                await demote_admin(event.client, chat, actor, admin_info)
+                            except Exception as e:
+                                await event.client.send_message(chat.id, f"⚠️ خطأ في القناة عند العزل:\n`{str(e)}`")
+                        remove_admins_aljoker[actor] = now
 
     except Exception:
         return
