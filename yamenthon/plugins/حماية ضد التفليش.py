@@ -13,6 +13,7 @@
 from datetime import datetime
 from telethon import events
 from telethon.tl.types import ChatAdminRights
+from telethon.tl.functions.channels import EditAdminRequest
 from yamenthon import zedub
 from . import gvarstatus, addgvar, delgvar
 
@@ -62,12 +63,14 @@ async def Hussein(event):
                             anonymous=False,
                         )
 
-                        # تنزيله من الإدارة
-                        await event.client.edit_admin(
-                            chat,
-                            user_id,
-                            rights,
-                            rank="",
+                        # تنزيله من الإدارة عبر EditAdminRequest
+                        await event.client(
+                            EditAdminRequest(
+                                channel=chat,
+                                user_id=user_id,
+                                admin_rights=rights,
+                                rank=""
+                            )
                         )
 
                     except Exception as e:
