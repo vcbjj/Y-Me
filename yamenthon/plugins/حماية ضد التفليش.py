@@ -16,7 +16,7 @@
 
 from datetime import datetime
 from telethon import events
-from telethon.tl.types import ChatAdminRights, Channel, ChannelAdminLogEventActionKick
+from telethon.tl.types import ChatAdminRights, Channel
 from telethon.tl.functions.channels import EditAdminRequest, GetAdminLogRequest
 
 from yamenthon import zedub
