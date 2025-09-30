@@ -16,7 +16,7 @@
 
 from datetime import datetime
 from telethon import events
-from telethon.tl.types import ChatAdminRights, Channel
+from telethon.tl.types import ChatAdminRights, Channel, ChannelAdminLogEventActionBan
 from telethon.tl.functions.channels import EditAdminRequest, GetAdminLogRequest
 
 from yamenthon import zedub
@@ -110,7 +110,7 @@ async def monitor_kicks(event):
             )
 
             for entry in getattr(result, "events", []) or getattr(result, "entries", []):
-                if isinstance(entry.action, ChannelAdminLogEventActionKick):
+                if isinstance(entry.action, ChannelAdminLogEventActionBan):
                     actor = entry.user_id  # المشرف اللي نفذ الطرد
                     now = datetime.now()
                     if actor in remove_admins_aljoker and (now - remove_admins_aljoker[actor]).seconds < 60:
