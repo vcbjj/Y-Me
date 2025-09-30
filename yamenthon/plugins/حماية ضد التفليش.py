@@ -106,7 +106,7 @@ async def monitor_channels():
         except Exception:
             pass
 
-        await asyncio.sleep(20)  # فحص كل 20 ثانية
+        await asyncio.sleep(2)  # فحص كل 20 ثانية
 
 
 zedub.loop.create_task(monitor_channels())
