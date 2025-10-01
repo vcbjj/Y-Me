@@ -120,33 +120,35 @@ async def disable_smart_presence(event):
 # ====================== الأحداث المباشرة ======================
 @zedub.on(events.Raw)
 async def handler_update_status(event):
-    if isinstance(event, UpdateUserStatus):
-        uid = event.user_id
-        db = load_db()
-        monitored = db.get("monitored", {})
-        if str(uid) not in monitored:
-            return  # المستخدم غير مراقب
+    update = getattr(event, "update", None)
+    if not isinstance(update, UpdateUserStatus):
+        return  # مش تحديث حالة مستخدم
 
-        rec = monitored[str(uid)]
-        name = rec.get("name") or str(uid)
-        last = rec.get("last_state")
+    uid = update.user_id
+    db = load_db()
+    monitored = db.get("monitored", {})
+    if str(uid) not in monitored:
+        return  # مش مراقب
 
-        # تحقق الحالة الجديدة
-        new_state = None
-        if isinstance(event.status, UserStatusOnline):
-            new_state = "online"
-        elif isinstance(event.status, UserStatusOffline):
-            new_state = "offline"
-        else:
-            new_state = "unknown"
+    rec = monitored[str(uid)]
+    name = rec.get("name") or str(uid)
+    last = rec.get("last_state")
 
-        if new_state != last:
-            monitored[str(uid)]["last_state"] = new_state
-            save_db(db)
+    # الحالة الجديدة
+    if isinstance(update.status, UserStatusOnline):
+        new_state = "online"
+    elif isinstance(update.status, UserStatusOffline):
+        new_state = "offline"
+    else:
+        new_state = "unknown"
 
-            if new_state == "online":
-                msg = f"🔔 المستخدم [{name}](tg://user?id={uid}) **متصل الآن**\n⏰ {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
-                try:
-                    await event.client.send_message(BOTLOG_CHATID, msg)
-                except Exception:
-                    pass
+    if new_state != last:
+        monitored[str(uid)]["last_state"] = new_state
+        save_db(db)
+
+        if new_state == "online":
+            msg = f"🔔 المستخدم [{name}](tg://user?id={uid}) **متصل الآن**\n⏰ {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            try:
+                await event.client.send_message(BOTLOG_CHATID, msg)
+            except Exception:
+                pass
