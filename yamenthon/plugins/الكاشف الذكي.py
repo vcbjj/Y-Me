@@ -1,37 +1,41 @@
 import json
 import os
-import asyncio
 from datetime import datetime
-from telethon.errors import RPCError
-from telethon.tl.types import User
+from telethon import events
+from telethon.tl.types import User, UpdateUserStatus, UserStatusOnline, UserStatusOffline
 
 from yamenthon import zedub
 from . import BOTLOG_CHATID
 
 DATA_FILE = "smart_presence_db.json"
-INTERVAL_SEC = 5  # فترة التحقق بالثواني: يمكنك تقليل/زيادة حسب حاجتك
 
-# بنية الملف: {"monitored": {"<user_id>": {"first_seen": "...", "last_state": "online"/"offline", "name": "..."}}}
-
+# ====================== إدارة قاعدة البيانات ======================
 def load_db():
     if not os.path.exists(DATA_FILE):
         return {"monitored": {}}
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            if not isinstance(data, dict):
+                return {"monitored": {}}
+            if "monitored" not in data:
+                data["monitored"] = {}
+            return data
     except Exception:
         return {"monitored": {}}
 
 def save_db(db):
+    if not isinstance(db, dict):
+        db = {"monitored": {}}
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(db, f, ensure_ascii=False, indent=2)
 
+# ====================== أداة مساعدة لحل المستخدم ======================
 async def resolve_user_from_arg_or_reply(event, arg: str):
-    """حلّل الوسائط (يوزر/آيدي) أو الرد للحصول على كيان المستخدم و user_id و اسم"""
     client = event.client
     target = None
 
-    # أولاً: إذا تم الرد على رسالة
+    # الرد على رسالة
     if event.is_reply:
         try:
             msg = await event.get_reply_message()
@@ -41,17 +45,15 @@ async def resolve_user_from_arg_or_reply(event, arg: str):
         except Exception:
             pass
 
-    # ثانياً: إذا وردت وسائط نصية (يوزر أو آيدي)
+    # باستخدام يوزر/آيدي
     if arg:
         arg = arg.strip()
-        # إذا رقم
         if arg.isdigit():
             try:
                 target = await client.get_entity(int(arg))
                 return target
             except Exception:
                 pass
-        # إذا ذكر مستخدم @username
         if arg.startswith("@"):
             try:
                 target = await client.get_entity(arg)
@@ -61,17 +63,17 @@ async def resolve_user_from_arg_or_reply(event, arg: str):
 
     return None
 
+# ====================== الأوامر ======================
 @zedub.zed_cmd(pattern=r"تفعيل الكاشف الذكي(?:\s+(.+))?$")
 async def enable_smart_presence(event):
-    """تفعيل مراقبة شخص"""
     if BOTLOG_CHATID in (None, 0, ""):
-        await event.reply("خطأ: تعريف متغير BOTLOG_CHATID غير موجود. الرجاء ضبطه في إعدادات المشروع.")
+        await event.reply("⚠️ خطأ: متغير BOTLOG_CHATID غير مضبوط.")
         return
 
     arg = event.pattern_match.group(1) if event.pattern_match else None
     user_entity = await resolve_user_from_arg_or_reply(event, arg or "")
     if not user_entity or not isinstance(user_entity, User):
-        await event.reply("خطأ: لم أستطع العثور على المستخدم. استخدم: `.تفعيل الكاشف الذكي @username` أو رُد على رسالة الشخص.")
+        await event.reply("⚠️ لم أستطع العثور على المستخدم.\nاستخدم: `.تفعيل الكاشف الذكي @username` أو رُد على رسالة.")
         return
 
     uid = int(user_entity.id)
@@ -82,7 +84,7 @@ async def enable_smart_presence(event):
     db = load_db()
     monitored = db.setdefault("monitored", {})
     if str(uid) in monitored:
-        await event.reply(f"🔔 بالفعل يتم مراقبة {name} (id: {uid}).")
+        await event.reply(f"ℹ️ المستخدم [{name}](tg://user?id={uid}) تتم مراقبته بالفعل.")
         return
 
     monitored[str(uid)] = {
@@ -92,15 +94,14 @@ async def enable_smart_presence(event):
     }
     save_db(db)
 
-    await event.reply(f"✅ تم تفعيل الكاشف الذكي للمستخدم: [{name}](tg://user?id={uid})\nسأرسل إشعارًا إلى مجموعة الإشعارات عند تسجيل تواجده.", parse_mode='md')
+    await event.reply(f"✅ تم تفعيل الكاشف الذكي لـ [{name}](tg://user?id={uid}).")
 
 @zedub.zed_cmd(pattern=r"تعطيل الكاشف الذكي(?:\s+(.+))?$")
 async def disable_smart_presence(event):
-    """إيقاف مراقبة شخص"""
     arg = event.pattern_match.group(1) if event.pattern_match else None
     user_entity = await resolve_user_from_arg_or_reply(event, arg or "")
     if not user_entity or not isinstance(user_entity, User):
-        await event.reply("خطأ: لم أستطع العثور على المستخدم. استخدم: .تعطيل الكاشف الذكي @username أو رُد على رسالة الشخص.")
+        await event.reply("⚠️ لم أستطع العثور على المستخدم.\nاستخدم: `.تعطيل الكاشف الذكي @username` أو رُد على رسالة.")
         return
 
     uid = int(user_entity.id)
@@ -109,87 +110,43 @@ async def disable_smart_presence(event):
     db = load_db()
     monitored = db.setdefault("monitored", {})
     if str(uid) not in monitored:
-        await event.reply(f"ℹ️ المستخدم [{name}](tg://user?id={uid}) غير مراقب أصلاً.", parse_mode='md')
+        await event.reply(f"ℹ️ المستخدم [{name}](tg://user?id={uid}) غير مراقب أصلاً.")
         return
 
     monitored.pop(str(uid), None)
     save_db(db)
-    await event.reply(f"⛔ تم إيقاف مراقبة المستخدم [{name}](tg://user?id={uid}).", parse_mode='md')
+    await event.reply(f"⛔ تم إيقاف مراقبة [{name}](tg://user?id={uid}).")
 
-async def presence_watcher_loop(client):
-    """حلقة تعمل في الخلفية وتتحقق من حالة المستخدمين المراقبين"""
-    await client.connect()
-    while True:
-        try:
-            db = load_db()
-            monitored = db.get("monitored", {})
-            if not monitored:
-                await asyncio.sleep(INTERVAL_SEC)
-                continue
+# ====================== الأحداث المباشرة ======================
+@zedub.on(events.Raw)
+async def handler_update_status(event):
+    if isinstance(event, UpdateUserStatus):
+        uid = event.user_id
+        db = load_db()
+        monitored = db.get("monitored", {})
+        if str(uid) not in monitored:
+            return  # المستخدم غير مراقب
 
-            # نجمع اليوزر ايديز لنستدعيهم دفعة واحدة
-            ids = [int(k) for k in monitored.keys()]
-            for uid in ids:
+        rec = monitored[str(uid)]
+        name = rec.get("name") or str(uid)
+        last = rec.get("last_state")
+
+        # تحقق الحالة الجديدة
+        new_state = None
+        if isinstance(event.status, UserStatusOnline):
+            new_state = "online"
+        elif isinstance(event.status, UserStatusOffline):
+            new_state = "offline"
+        else:
+            new_state = "unknown"
+
+        if new_state != last:
+            monitored[str(uid)]["last_state"] = new_state
+            save_db(db)
+
+            if new_state == "online":
+                msg = f"🔔 المستخدم [{name}](tg://user?id={uid}) **متصل الآن**\n⏰ {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
                 try:
-                    entity = await client.get_entity(uid)
-                except RPCError:
-                    # لا يمكن جلب الكيان الآن
-                    await asyncio.sleep(0.5)
-                    continue
+                    await event.client.send_message(BOTLOG_CHATID, msg)
                 except Exception:
-                    continue
-
-                # حالة اليوزر: بعض الكائنات قد لا تحتوي status
-                status = getattr(entity, 'status', None)
-                is_online = False
-                if status is not None:
-                    # Telethon يضع status كـ UserStatusOnline / UserStatusRecently / etc
-                    stname = type(status).__name__.lower()
-                    # اعتبارات بسيطة: إذا تضمن الاسم "online" اعتبر متصل
-                    if 'online' in stname:
-                        is_online = True
-                    elif 'recently' in stname:
-                        # ممكن أن نعتبر recently كـ online بحسب رغبتك — هنا لن نعتبرها متصلة
-                        is_online = False
-                else:
-                    is_online = False
-
-                rec = monitored.get(str(uid), {})
-                last = rec.get('last_state')
-                name = rec.get('name') or (entity.first_name or entity.username or str(uid))
-
-                if is_online and last != 'online':
-                    # تغيير إلى متصل -> أرسل إشعار
-                    msg = f"🔔 المستخدم الآن متصل: [{name}](tg://user?id={uid})\nالوقت: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
-                    try:
-                        await client.send_message(BOTLOG_CHATID, msg, parse_mode='md')
-                    except Exception:
-                        # فشل الإرسال لا يوقف الحلقة
-                        pass
-                    rec['last_state'] = 'online'
-                    monitored[str(uid)] = rec
-                    save_db(db)
-
-                elif (not is_online) and last == 'online':
-                    # تبديل من متصل إلى غير متصل -> نحدث الحالة فقط (اختياري: نرسل إشعار عند الخروج)
-                    rec['last_state'] = 'offline'
-                    monitored[str(uid)] = rec
-                    save_db(db)
-
-                # لا تغيير -> تجاهل
-                await asyncio.sleep(0.3)  # تخفيف الضغط بين الطلبات
-
-        except Exception:
-            # لا نريد أن تتوقف الحلقة بسبب خطأ عارض
-            await asyncio.sleep(5)
-        await asyncio.sleep(INTERVAL_SEC)
-
-# تسجيل المهمة عند بدء البوت
-
-@zedub.zed_cmd(pattern=r"(?:start|boot|init)_presence_watcher$")
-async def _start_presence_watcher(event):
-    """أمر داخلي لتشغيل الحلقة عند بداية التشغيل. يمكنك استدعاؤه يدوياً أو إضافته لبدء التشغيل."""
-    client = event.client
-    # شغّل الحلقة بشكل غير محظور
-    client.loop.create_task(presence_watcher_loop(client))
-    await event.reply("✅ تم تشغيل حلقة مراقبة الحضور (presence watcher).")
+                    pass
