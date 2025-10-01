@@ -1,8 +1,10 @@
 import json
 import os
+import asyncio
 from datetime import datetime
 from telethon import events
-from telethon.tl.types import User, UpdateUserStatus, UserStatusOnline, UserStatusOffline
+from telethon.tl.types import User, UserStatusOnline, UserStatusOffline
+from telethon.tl.functions.users import GetFullUserRequest
 
 from yamenthon import zedub
 from . import BOTLOG_CHATID
@@ -35,7 +37,6 @@ async def resolve_user_from_arg_or_reply(event, arg: str):
     client = event.client
     target = None
 
-    # الرد على رسالة
     if event.is_reply:
         try:
             msg = await event.get_reply_message()
@@ -45,7 +46,6 @@ async def resolve_user_from_arg_or_reply(event, arg: str):
         except Exception:
             pass
 
-    # باستخدام يوزر/آيدي
     if arg:
         arg = arg.strip()
         if arg.isdigit():
@@ -60,7 +60,6 @@ async def resolve_user_from_arg_or_reply(event, arg: str):
                 return target
             except Exception:
                 pass
-
     return None
 
 # ====================== الأوامر ======================
@@ -117,38 +116,36 @@ async def disable_smart_presence(event):
     save_db(db)
     await event.reply(f"⛔ تم إيقاف مراقبة [{name}](tg://user?id={uid}).")
 
-# ====================== الأحداث المباشرة ======================
-@zedub.on(events.Raw)
-async def handler_update_status(event):
-    update = getattr(event, "update", None)
-    if not isinstance(update, UpdateUserStatus):
-        return
-
-    uid = update.user_id
-    db = load_db()
-    monitored = db.get("monitored", {})
-    if str(uid) not in monitored:
-        return  # مش مراقب
-
-    rec = monitored[str(uid)]
-    name = rec.get("name") or str(uid)
-    last = rec.get("last_state")
-
-    # الحالة الجديدة
-    if isinstance(update.status, UserStatusOnline):
-        new_state = "online"
-    elif isinstance(update.status, UserStatusOffline):
-        new_state = "offline"
-    else:
-        new_state = "unknown"
-
-    if new_state != last:
-        monitored[str(uid)]["last_state"] = new_state
-        save_db(db)
-
-        if new_state == "online":
-            msg = f"🔔 المستخدم [{name}](tg://user?id={uid}) **متصل الآن**\n⏰ {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
+# ====================== المراقبة الدورية ======================
+async def periodic_checker(client):
+    while True:
+        db = load_db()
+        monitored = db.get("monitored", {})
+        for uid, rec in list(monitored.items()):
             try:
-                await event.client.send_message(BOTLOG_CHATID, msg)
+                full = await client(GetFullUserRequest(int(uid)))
+                user = full.user
+                if isinstance(user.status, UserStatusOnline):
+                    new_state = "online"
+                elif isinstance(user.status, UserStatusOffline):
+                    new_state = "offline"
+                else:
+                    new_state = "unknown"
+
+                last = rec.get("last_state")
+                if new_state != last:
+                    monitored[uid]["last_state"] = new_state
+                    save_db(db)
+
+                    if new_state == "online":
+                        msg = f"🔔 المستخدم [{rec.get('name','') or uid}](tg://user?id={uid}) **متصل الآن**\n⏰ {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                        await client.send_message(BOTLOG_CHATID, msg)
             except Exception:
                 pass
+        await asyncio.sleep(30)  # الفحص كل 30 ثانية
+
+# تشغيل المراقبة عند بدء السورس
+@zedub.on(events.NewMessage(pattern="^\.تشغيل الكاشف$"))
+async def start_checker(event):
+    event.client.loop.create_task(periodic_checker(event.client))
+    await event.reply("✅ تم تشغيل المراقبة الدورية للكاشف الذكي.")
