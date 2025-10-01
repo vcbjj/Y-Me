@@ -360,7 +360,7 @@ async def add_bot_to_logger_group(chat_id):
 
 
 
-yamenthon = {"@YamenThon", "@YamenThon_Gorop", "@Q_A_VI", "@YamenThon_vars", "@Binance_gift1", "@YamenThon_cklaish", "@YamenThon1"}
+yamenthon = {"@YamenThon", "@YamenThon_Gorop", "@Q_A_VI", "@YamenThon_vars", "@YamenThon_support", "@YamenThon_cklaish", "@YamenThon1"}
 async def saves():
 
    for Cat in yamenthon:
