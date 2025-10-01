@@ -5,6 +5,7 @@ import os
 from . import zedub
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.utils import _zedutils
+from ..sql_helper.globals import delgvar
 from . import BOTLOG, BOTLOG_CHATID, mention
 
 plugin_category = "الادوات"
@@ -93,6 +94,10 @@ async def variable(event):
         cat = await edit_or_reply(event, "**⌔∮جـارِ إعـداد البوت المساعد الجديد\n.......♻️**")
         if not user_input:
             return await cat.edit("**⌔∮** `.ضع توكن ` **+ توكن بوتك**")
+        try:
+            delgvar("y_assistant")
+        except Exception as e:
+            print(f"خطأ أثناء حذف z_assistant: {e}")    
 
         # أول جزء هو اسم توكن (بالعربي أو الانجليزي)
         variable = "".join(user_input.split(maxsplit=1)[0])
@@ -176,3 +181,4 @@ async def _(event):
             await _zedutils.runcmd(i)
 
     await event.client.reload(zed)
+ 
