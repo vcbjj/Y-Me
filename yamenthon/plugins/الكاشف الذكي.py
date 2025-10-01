@@ -118,26 +118,29 @@ async def disable_smart_presence(event):
     await event.reply(f"⛔ تم إيقاف مراقبة [{name}](tg://user?id={uid}).")
 
 # ====================== الأحداث المباشرة ======================
-@zedub.on(events.UserUpdate)
+@zedub.on(events.Raw)
 async def handler_update_status(event):
-    # event.user_id أو event.sender_id يحتوي id المستخدم
-    uid = getattr(event, "user_id", None) or getattr(event, "sender_id", None)
-    if not uid:
+    if not isinstance(event, UpdateShort):
         return
 
+    update = event.update
+    if not isinstance(update, UpdateUserStatus):
+        return
+
+    uid = update.user_id
     db = load_db()
     monitored = db.get("monitored", {})
     if str(uid) not in monitored:
-        return
+        return  # مش مراقب
 
     rec = monitored[str(uid)]
     name = rec.get("name") or str(uid)
     last = rec.get("last_state")
 
-    status = getattr(event, "status", None)
-    if isinstance(status, UserStatusOnline):
+    # الحالة الجديدة
+    if isinstance(update.status, UserStatusOnline):
         new_state = "online"
-    elif isinstance(status, UserStatusOffline):
+    elif isinstance(update.status, UserStatusOffline):
         new_state = "offline"
     else:
         new_state = "unknown"
@@ -150,7 +153,5 @@ async def handler_update_status(event):
             msg = f"🔔 المستخدم [{name}](tg://user?id={uid}) **متصل الآن**\n⏰ {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
             try:
                 await event.client.send_message(BOTLOG_CHATID, msg)
-            except Exception as e:
-                # ضع هنا لوج/طباعة للاختبار إذا أردت
-                await event.client.send_message("me", f"Failed to send presence msg: {e}")    
-    
+            except Exception:
+                pass
