@@ -248,61 +248,56 @@ async def startupmessage():
 
 
 
-async def mybot():
-
-    ZELZAL = bot.me.first_name
-
-    Malath = bot.uid
-
-    zel_zal = f"[{ZELZAL}](tg://user?id={Malath})"
-
-    f"ـ {zel_zal}"
-
-    f"•⎆┊هــذا البــوت خــاص بـ {zel_zal} يمكـنك التواصــل معـه هـنا 🧸♥️"
-
-    zilbot = await zedub.tgbot.get_me()
-
-    bot_name = zilbot.first_name
-
-    botname = f"@{zilbot.username}"
-
-    if bot_name.endswith("Assistant"):
-
-        print("تم تشغيل البوت بنجــاح")
-
+async def mybot(): #Code by T.me/T_A_Tl 
+    if gvarstatus("y_assistant"):
+        print("تم تشغيل البوت المسـاعـد .. بنجــاح ✅")
     else:
-
+        Zname = Config.ALIVE_NAME
+        Zid = Config.OWNER_ID
+        zel_zal = f"[{Zname}](tg://user?id={Zid})"
+        Zbotname = Config.TG_BOT_USERNAME
+        botname = Config.TG_BOT_USERNAME
+        fullname = f"{bot.me.first_name} {bot.me.last_name}" if bot.me.last_name else bot.me.first_name
         try:
-
             await bot.send_message("@BotFather", "/setinline")
-            await asyncio.sleep(4)
+            await asyncio.sleep(2)
             await bot.send_message("@BotFather", botname)
             await asyncio.sleep(2)
-            await bot.send_message("@BotFather", "bot")
+            await bot.send_message("@BotFather", fullname)
             await asyncio.sleep(3)
             await bot.send_message("@BotFather", "/setname")
             await asyncio.sleep(1)
             await bot.send_message("@BotFather", botname)
-            await asyncio.sleep(2)
-            await bot.send_message("@BotFather", f"مسـاعـد - {bot.me.first_name} ")
+            await asyncio.sleep(1)
+            await bot.send_message("@BotFather", fullname)
             await asyncio.sleep(3)
             await bot.send_message("@BotFather", "/setuserpic")
             await asyncio.sleep(1)
             await bot.send_message("@BotFather", botname)
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             await bot.send_file("@BotFather", "yamenthon/resources/Yemen2.jpg")
+            await asyncio.sleep(3)
+            await bot.send_message("@BotFather", "/setcommands")
+            await asyncio.sleep(1)
+            await bot.send_message("@BotFather", botname)
+            await asyncio.sleep(1)
+            await bot.send_message("@BotFather", "start - start the bot")
             await asyncio.sleep(3)
             #await bot.send_message("@BotFather", "/setabouttext")
             #await asyncio.sleep(1)
             #await bot.send_message("@BotFather", botname)
             #await asyncio.sleep(1)
-            #await bot.send_message("@BotFather", f"- البوت المساعد الخاص{bot.me.first_name} ")
+            #await bot.send_message("@BotFather", f"• البـوت المساعـد ♥️🦾\n• الخاص بـ  {fullname}\n• بوت خدمي متنـوع 🎁")
             #await asyncio.sleep(3)
             #await bot.send_message("@BotFather", "/setdescription")
             #await asyncio.sleep(1)
             #await bot.send_message("@BotFather", botname)
             #await asyncio.sleep(1)
-            #await bot.send_message("@BotFather", f"الوصف في الشات")
+            #await bot.send_message("@BotFather", f"✧ البــوت الخدمـي المسـاعـد\n✧ الخـاص بـ {fullname}\n✧ أحتـوي على عـدة أقسـام خدميـه 🧸♥️\n 🌐 @YamenThon 🌐")
+            #await asyncio.sleep(2)
+            await bot.send_message("@BotFather", f"**• إعـداد البـوت المسـاعـد .. تم بنجـاح ☑️**\n**• جـارِ الان بـدء تنصيب سـورس يمن ثون المدفـوع  ✈️. . .**\n\n**• ملاحظـه هامـه 🔰**\n- هـذه العمليه تحدث تلقائياً .. عبر جلسة التنصيب\n- لـذلك لا داعـي للقلـق 😇")
+            #addgvar("y_assistant", True)
+            addgvar("y_assistant", True)
         except Exception as e:
             print(e)
 
