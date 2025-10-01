@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from telethon import events
 from telethon.tl.types import User, UpdateUserStatus, UserStatusOnline, UserStatusOffline
-from telethon.tl.types.updates import UpdateShort
 
 from yamenthon import zedub
 from . import BOTLOG_CHATID
@@ -121,10 +120,7 @@ async def disable_smart_presence(event):
 # ====================== الأحداث المباشرة ======================
 @zedub.on(events.Raw)
 async def handler_update_status(event):
-    if not isinstance(event, UpdateShort):
-        return
-
-    update = event.update
+    update = getattr(event, "update", None)
     if not isinstance(update, UpdateUserStatus):
         return
 
