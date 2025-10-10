@@ -1,10 +1,9 @@
-
 import json
 import os
 from datetime import datetime
 from telethon import events
-from telethon.tl.types import ChatAdminRights, Channel
-from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights, Channel, ChannelAdminLogEventsFilter
+from telethon.tl.functions.channels import EditAdminRequest, GetAdminLogRequest
 
 from yamenthon import zedub
 from . import BOTLOG_CHATID
@@ -28,6 +27,23 @@ def save_db(db):
 # ===================== المتغيرات =====================
 remove_admins_aljoker = {}  # تخزين آخر وقت طرد لكل مشرف
 
+# ===================== دالة بديلة لجلب آخر من قام بالطرد =====================
+async def get_last_kick_actor(client, chat):
+    try:
+        log = await client(GetAdminLogRequest(
+            channel=chat,
+            q="",
+            max_id=0,
+            min_id=0,
+            limit=5,
+            events_filter=ChannelAdminLogEventsFilter(kick=True)
+        ))
+        if log.events:
+            return log.events[0].user_id
+    except Exception:
+        pass
+    return None
+
 # ===================== مراقبة الطرد =====================
 @zedub.on(events.ChatAction)
 async def monitor_kicks(event):
@@ -44,8 +60,12 @@ async def monitor_kicks(event):
     try:
         if event.user_kicked:  # فقط لو في عملية طرد
             user_id = getattr(event.action_message.from_id, "user_id", None)
+
+            # محاولة بديلة لجلب الفاعل من سجل الإدارة في حال from_id غير متوفر
             if not user_id:
-                return
+                user_id = await get_last_kick_actor(event.client, chat)
+                if not user_id:
+                    return  # لم يتم العثور على من قام بالطرد
 
             now = datetime.now()
 
@@ -54,9 +74,7 @@ async def monitor_kicks(event):
                 if (now - remove_admins_aljoker[user_id]).seconds < 60:
                     try:
                         admin_info = await event.client.get_entity(user_id)
-                        yamen_link = (
-                            f"[{admin_info.first_name}](tg://user?id={admin_info.id})"
-                        )
+                        yamen_link = f"[{admin_info.first_name}](tg://user?id={admin_info.id})"
 
                         # صلاحيات فارغة لعزل المشرف
                         rights = ChatAdminRights(
@@ -73,14 +91,12 @@ async def monitor_kicks(event):
                         )
 
                         # تنفيذ عزل المشرف
-                        await event.client(
-                            EditAdminRequest(
-                                channel=chat,
-                                user_id=user_id,
-                                admin_rights=rights,
-                                rank=""
-                            )
-                        )
+                        await event.client(EditAdminRequest(
+                            channel=chat,
+                            user_id=user_id,
+                            admin_rights=rights,
+                            rank=""
+                        ))
 
                         # رسالة تنبيه
                         msg = (
@@ -99,9 +115,7 @@ async def monitor_kicks(event):
                             await event.reply(msg)
 
                     except Exception as e:
-                        await event.reply(
-                            f"⚠️ حدث خطأ أثناء محاولة تنزيل المشرف:\n`{str(e)}`"
-                        )
+                        await event.reply(f"⚠️ حدث خطأ أثناء محاولة تنزيل المشرف:\n`{str(e)}`")
 
                 # تحديث الوقت
                 remove_admins_aljoker[user_id] = now
@@ -127,7 +141,7 @@ async def enable_antiflash(event):
 
     db[chat_id] = True
     save_db(db)
-    await event.edit("**-︙ تم تفعيل حماية منع التفليش في هذه المجموعة**\n**-︙ عزيزي المالك هاذا الامر فقط يعمل في المجموعـات**")
+    await event.edit("✅︙ تم تفعيل حماية منع التفليش بنجاح\n⚠️︙ تعمل فقط في السوبرجروبات التي يمتلك فيها البوت صلاحيات مشرف ورؤية سجل الإدارة")
 
 
 @zedub.zed_cmd(pattern="فتح التفليش", require_admin=True)
@@ -140,8 +154,8 @@ async def disable_antiflash(event):
     chat_id = str(event.chat_id)
 
     if not db.get(chat_id):
-        return await event.edit("**ℹ️︙ حماية منع التفليش معطلة مسبقًا في هذه المجموعة**")
+        return await event.edit("ℹ️︙ حماية منع التفليش معطلة مسبقًا في هذه المجموعة")
 
     db.pop(chat_id, None)
     save_db(db)
-    await event.edit("**🛑︙ تم تعطيل حماية منع التفليش في هذه المجموعة**")
+    await event.edit("🛑︙ تم تعطيل حماية منع التفليش في هذه المجموعة")
