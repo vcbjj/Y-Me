@@ -119,6 +119,9 @@ async def _(event):
     if input_str == "البوتات":
         update_lock(zed_id, "bots", True)
         return await edit_or_reply(event, "**⎆ تـم قفـل {} بنجـاح ✅ •**\n\n**⎆ خاصيـة الطـرد والتحذيـر •**".format(input_str))
+    if input_str == "التفليش":
+        update_lock(zed_id, "bohhhhh", False)
+        
     if input_str == "المعرفات":
         update_lock(zed_id, "button", True)
         return await edit_or_reply(event, "**⎆ تـم قفـل {} بنجـاح ✅ •**\n\n**⎆ خاصيـة المسـح والتحذيـر •**".format(input_str))
@@ -210,6 +213,8 @@ async def _(event):
     if input_str == "البوتات":
         update_lock(zed_id, "bots", False)
         return await edit_or_reply(event, "**⎆ تـم فتـح** {} **بنجـاح ✅ 𓆰•**".format(input_str))
+    if input_str == "التفليش":
+        update_lock(zed_id, "bohhhhh", False)
     if input_str == "الدخول":
         update_lock(zed_id, "location", False)
         return await edit_or_reply(event, "**⎆ تـم فتـح** {} **بنجـاح ✅ 𓆰•**".format(input_str))
@@ -709,4 +714,4 @@ async def zelzal(zed):
             f"#طـرد_البوتـات\
             \n ⎆ {del_status}\
             \n ⎆ الـدردشـة: {zed.chat.title}(`{zed.chat_id}`)",
-        )
+		)
