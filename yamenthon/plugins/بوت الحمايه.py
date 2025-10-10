@@ -119,9 +119,6 @@ async def _(event):
     if input_str == "البوتات":
         update_lock(zed_id, "bots", True)
         return await edit_or_reply(event, "**⎆ تـم قفـل {} بنجـاح ✅ •**\n\n**⎆ خاصيـة الطـرد والتحذيـر •**".format(input_str))
-    if input_str == "التفليش":
-        update_lock(zed_id, "bohhhhh", False)
-        
     if input_str == "المعرفات":
         update_lock(zed_id, "button", True)
         return await edit_or_reply(event, "**⎆ تـم قفـل {} بنجـاح ✅ •**\n\n**⎆ خاصيـة المسـح والتحذيـر •**".format(input_str))
@@ -168,10 +165,12 @@ async def _(event):
         update_lock(zed_id, "voice", True)
         return await edit_or_reply(event, "**⎆ تـم قفـل {} بنجـاح ✅ •**\n\n**⎆ خاصيـة المسـح - الطـرد - التقييـد - التحذيـر •**".format(input_str))
     else:
-        if input_str:
-            return await edit_delete(
-                event, f"**⎆ عذرًا لايـوجـد امـر بـ اسـم :** `{input_str}`\n**⎆ لعـرض اوامـر القفـل والفتـح أرســل** `.م4`", time=10
-            )
+       if input_str and "التفليش" not in input_str:
+    return await edit_delete(
+        event,
+        f"**⎆ عذرًا لايـوجـد امـر بـ اسـم :** `{input_str}`\n**⎆ لعـرض اوامـر القفـل والفتـح أرســل** `.م4`",
+        time=10
+    )
 
         return await edit_or_reply(event, "**⎆ عـذࢪًا عـزيـزي .. لايمكنك قفـل اي شي هنـا ...𓆰**")
 
@@ -213,8 +212,6 @@ async def _(event):
     if input_str == "البوتات":
         update_lock(zed_id, "bots", False)
         return await edit_or_reply(event, "**⎆ تـم فتـح** {} **بنجـاح ✅ 𓆰•**".format(input_str))
-    if input_str == "التفليش":
-        update_lock(zed_id, "bohhhhh", False)
     if input_str == "الدخول":
         update_lock(zed_id, "location", False)
         return await edit_or_reply(event, "**⎆ تـم فتـح** {} **بنجـاح ✅ 𓆰•**".format(input_str))
@@ -264,10 +261,12 @@ async def _(event):
         update_lock(zed_id, "egame", False)
         return await edit_or_reply(event, "**⎆ تـم فتـح** {} **بنجـاح ✅ 𓆰•**".format(input_str))
     else:
-        if input_str:
-            return await edit_delete(
-                event, f"**⎆ عذرًا لايـوجـد امـر بـ اسـم :** `{input_str}`\n**⎆ لعـرض اوامـر القفـل والفتـح أرســل** `.م4`", time=10
-            )
+        if input_str and "التفليش" not in input_str:
+    return await edit_delete(
+        event,
+        f"**⎆ عذرًا لايـوجـد امـر بـ اسـم :** `{input_str}`\n**⎆ لعـرض اوامـر القفـل والفتـح أرســل** `.م4`",
+        time=10
+    )
 
         return await edit_or_reply(event, "**⎆ عـذࢪًا عـزيـزي .. لايمكنك اعـادة فتـح اي شي هنـا ...𓆰**")
 
@@ -714,4 +713,4 @@ async def zelzal(zed):
             f"#طـرد_البوتـات\
             \n ⎆ {del_status}\
             \n ⎆ الـدردشـة: {zed.chat.title}(`{zed.chat_id}`)",
-		)
+	)
