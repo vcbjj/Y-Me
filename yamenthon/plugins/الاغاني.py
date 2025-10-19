@@ -6,12 +6,29 @@ from ..core.logger import logging
 from ..core.managers import edit_or_reply
 from ..helpers.utils import reply_id
 from . import zedub
-from youtubesearchpython import VideosSearch  # مكتبة البحث الثابتة
+from youtubesearchpython import VideosSearch  # مكتبة مستقرة للبحث
 
 plugin_category = "البحث"
 LOGS = logging.getLogger(__name__)
 
 API_BASE = "https://api.dfkz.xo.je/apis/v3/download.php?url="
+
+# ----------------------- البحث عن الفيديو -----------------------
+def search_youtube(query: str):
+    """بحث سريع عن الفيديو باستخدام مكتبة youtubesearchpython"""
+    try:
+        search = VideosSearch(query, limit=1)
+        results = search.result().get("result")
+        if results and len(results) > 0:
+            video = results[0]
+            return {
+                "url": video["link"],
+                "title": video.get("title"),
+                "thumb": video["thumbnails"][0]["url"] if video.get("thumbnails") else None
+            }
+    except Exception as e:
+        LOGS.error(f"خطأ في البحث عن الفيديو: {e}")
+    return None
 
 # ----------------------- تحميل صوت -----------------------
 @zedub.zed_cmd(pattern="(?:بحث|اغنيه)(?:\s|$)([\s\S]*)")
@@ -23,26 +40,22 @@ async def yt_search_audio(event):
 
     zedevent = await edit_or_reply(event, "🎵 **جاري البحث عن الأغنية...**")
 
-    # البحث عن الفيديو
     if not query.startswith("http"):
-        try:
-            search = VideosSearch(query, limit=1)
-            result = search.result()["result"][0]
-            video_url = result["link"]
-            title = result["title"]
-            thumb = result["thumbnails"][0]["url"]
-        except Exception as e:
-            LOGS.error(f"خطأ في البحث عن الفيديو: {e}")
+        result = search_youtube(query)
+        if not result:
             return await zedevent.edit("❌ لم أجد نتائج للبحث.")
+        video_url = result["url"]
+        title = result["title"]
+        thumb = result["thumb"]
     else:
         video_url = query
         title = "أغنية من يوتيوب"
         thumb = None
 
     try:
-        # التحميل عبر API dfkz
+        # تحميل الفيديو عبر API dfkz
         api_res = requests.get(f"{API_BASE}{video_url}").json()
-        video_link = api_res.get("url")
+        video_link = api_res.get("url")  # dfkz يعطي رابط الفيديو مباشرة
         if not video_link:
             return await zedevent.edit("❌ لم أتمكن من جلب رابط التحميل من API.")
 
@@ -62,7 +75,6 @@ async def yt_search_audio(event):
             reply_to=reply_to_id
         )
         await zedevent.delete()
-
     except Exception as e:
         LOGS.error(str(e))
         await zedevent.edit("❌ حدث خطأ أثناء التحميل.")
@@ -80,17 +92,13 @@ async def yt_search_video(event):
 
     zedevent = await edit_or_reply(event, "📹 **جاري البحث عن الفيديو...**")
 
-    # البحث عن الفيديو
     if not query.startswith("http"):
-        try:
-            search = VideosSearch(query, limit=1)
-            result = search.result()["result"][0]
-            video_url = result["link"]
-            title = result["title"]
-            thumb = result["thumbnails"][0]["url"]
-        except Exception as e:
-            LOGS.error(f"خطأ في البحث عن الفيديو: {e}")
+        result = search_youtube(query)
+        if not result:
             return await zedevent.edit("❌ لم أجد نتائج للبحث.")
+        video_url = result["url"]
+        title = result["title"]
+        thumb = result["thumb"]
     else:
         video_url = query
         title = "فيديو من يوتيوب"
@@ -111,7 +119,6 @@ async def yt_search_video(event):
             reply_to=reply_to_id
         )
         await zedevent.delete()
-
     except Exception as e:
         LOGS.error(str(e))
         await zedevent.edit("❌ حدث خطأ أثناء التحميل.")
