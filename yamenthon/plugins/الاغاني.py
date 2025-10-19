@@ -6,26 +6,28 @@ from ..core.logger import logging
 from ..core.managers import edit_or_reply
 from ..helpers.utils import reply_id
 from . import zedub
-import yt_dlp
+from youtubesearchpython import VideosSearch  # مكتبة مستقرة للبحث
 
 plugin_category = "البحث"
 LOGS = logging.getLogger(__name__)
 
 API_BASE = "https://api.dfkz.xo.je/apis/v3/download.php?url="
 
+# ----------------------- البحث عن الفيديو -----------------------
 def search_youtube(query: str):
-    """بحث سريع عن الفيديو باستخدام yt_dlp"""
-    ydl_opts = {"quiet": True, "skip_download": True}
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
-        if "entries" in info and len(info["entries"]) > 0:
-            video = info["entries"][0]
-            return {
-                "url": video["webpage_url"],
-                "title": video.get("title"),
-                "thumb": video.get("thumbnail")
-            }
-    return None
+    """بحث سريع عن الفيديو باستخدام youtubesearchpython"""
+    try:
+        search = VideosSearch(query, limit=1)
+        result = search.result()
+        video = result['result'][0]
+        return {
+            "url": video['link'],
+            "title": video['title'],
+            "thumb": video['thumbnails'][0]['url'] if video['thumbnails'] else None
+        }
+    except Exception as e:
+        LOGS.error(f"خطأ في البحث عن الفيديو: {e}")
+        return None
 
 # ----------------------- تحميل صوت -----------------------
 @zedub.zed_cmd(pattern="(?:بحث|اغنيه)(?:\s|$)([\s\S]*)")
@@ -37,6 +39,7 @@ async def yt_search_audio(event):
 
     zedevent = await edit_or_reply(event, "🎵 **جاري البحث عن الأغنية...**")
 
+    # البحث عن الفيديو إذا لم يكن رابط مباشر
     if not query.startswith("http"):
         result = search_youtube(query)
         if not result:
@@ -50,15 +53,13 @@ async def yt_search_audio(event):
         thumb = None
 
     try:
+        # التحميل عبر API dfkz
         api_res = requests.get(f"{API_BASE}{video_url}").json()
-        links = api_res.get("links", [])
-        if not links:
+        video_link = api_res.get("url")  # dfkz يعيد الرابط مباشرة
+        if not video_link:
             return await zedevent.edit("❌ لم أتمكن من جلب رابط التحميل من API.")
 
-        video_link = next((l["url"] for l in links if l.get("type") == "video"), None)
-        if not video_link:
-            return await zedevent.edit("❌ لم أجد رابط فيديو صالح.")
-
+        # تحويل الفيديو إلى صوت mp3
         audio_file = "temp_audio.mp3"
         cmd = ["ffmpeg", "-i", video_link, "-vn", "-ab", "192k", "-ar", "44100", "-y", audio_file]
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -66,6 +67,7 @@ async def yt_search_audio(event):
         if not os.path.exists(audio_file):
             return await zedevent.edit("❌ فشل استخراج الصوت من الفيديو.")
 
+        # إرسال الملف الصوتي
         await event.client.send_file(
             event.chat_id,
             file=audio_file,
@@ -105,13 +107,9 @@ async def yt_search_video(event):
 
     try:
         api_res = requests.get(f"{API_BASE}{video_url}").json()
-        links = api_res.get("links", [])
-        if not links:
-            return await zedevent.edit("❌ لم أتمكن من جلب رابط التحميل من API.")
-
-        video_link = next((l["url"] for l in links if l.get("type") == "video"), None)
+        video_link = api_res.get("url")
         if not video_link:
-            return await zedevent.edit("❌ لم أجد رابط فيديو صالح.")
+            return await zedevent.edit("❌ لم أتمكن من جلب رابط التحميل من API.")
 
         await event.client.send_file(
             event.chat_id,
