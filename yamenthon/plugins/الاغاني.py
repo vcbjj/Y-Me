@@ -1,125 +1,122 @@
+import base64
+import contextlib
+import io
 import os
 import requests
-import subprocess
+
 from telethon import types
+from telethon.errors.rpcerrorlist import YouBlockedUserError
+from telethon.tl.functions.contacts import UnblockRequest as unblock
+from telethon.tl.functions.messages import ImportChatInviteRequest as Get
+from validators.url import url
+
 from ..core.logger import logging
-from ..core.managers import edit_or_reply
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.functions import delete_conv, yt_search
 from ..helpers.utils import reply_id
 from . import zedub
-from googleapiclient.discovery import build  # البحث عبر YouTube API
 
 plugin_category = "البحث"
 LOGS = logging.getLogger(__name__)
 
-API_BASE = "https://api.dfkz.xo.je/apis/v3/download.php?url="
-YOUTUBE_API_KEY = "AIzaSyBBhDdMwgH9I9_4uIZe8vYCWPMLHiKh4l0"  # ضع مفتاحك هنا
+SONG_SEARCH_STRING = "<b>╮ جـارِ البحث ؏ـن الاغنيـٓه... 🎧♥️╰</b>"
+SONG_NOT_FOUND = "<b>⎉╎لـم استطـع ايجـاد المطلـوب .. جرب البحث باستخـدام الامـر (.اغنيه)</b>"
+SONG_SENDING_STRING = "<b>╮ جـارِ تحميـل الاغنيـٓه... 🎧♥️╰</b>"
 
-# ----------------------- البحث عن الفيديو عبر YouTube API -----------------------
-def search_youtube(query: str):
-    try:
-        youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-        request = youtube.search().list(
-            q=query,
-            part="snippet",
-            maxResults=1,
-            type="video"
-        )
-        response = request.execute()
-        items = response.get("items")
-        if items:
-            video = items[0]
-            video_id = video["id"]["videoId"]
-            title = video["snippet"]["title"]
-            thumb = video["snippet"]["thumbnails"]["high"]["url"]
-            url = f"https://www.youtube.com/watch?v={video_id}"
-            return {"url": url, "title": title, "thumb": thumb}
-    except Exception as e:
-        LOGS.error(f"خطأ في البحث عن الفيديو: {e}")
-    return None
+API_URL = "https://api.dfkz.xo.je/apis/v3/download.php?url="
 
-# ----------------------- تحميل صوت -----------------------
-@zedub.zed_cmd(pattern="(?:بحث|اغنيه)(?:\s|$)([\s\S]*)")
-async def yt_search_audio(event):
+
+@zedub.zed_cmd(
+    pattern="بحث(320)?(?:\s|$)([\s\S]*)",
+    command=("بحث", plugin_category),
+    info={
+        "header": "لـ تحميـل الاغـانـي مـن يـوتيـوب",
+        "امـر مضـاف": {"320": "لـ البحـث عـن الاغـانـي وتحميـلهـا بـدقـه عـاليـه 320k"},
+        "الاسـتخـدام": "{tr}بحث + اسـم الاغنيـه",
+        "مثــال": "{tr}بحث حسين الجسمي احبك",
+    },
+)
+async def song(event):
     reply_to_id = await reply_id(event)
-    query = event.pattern_match.group(1)
+    reply = await event.get_reply_message()
+    query = event.pattern_match.group(2) or (reply.message if reply else None)
     if not query:
-        return await edit_or_reply(event, "**⚠️ الرجاء كتابة اسم الأغنية أو الرابط.**")
+        return await edit_or_reply(event, "**⎉╎قم باضافـة الاغنيـه للامـر .. بحث + اسـم الاغنيـه**")
 
-    zedevent = await edit_or_reply(event, "🎵 **جاري البحث عن الأغنية...**")
+    zedevent = await edit_or_reply(event, SONG_SEARCH_STRING)
+    video_link = await yt_search(str(query))
+    if not url(video_link):
+        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}")
 
-    audio_file = None  # <- هنا تعريف المتغير مسبقًا
-
-    if not query.startswith("http"):
-        result = search_youtube(query)
-        if not result:
-            return await zedevent.edit("❌ لم أجد نتائج للبحث.")
-        video_url, title, thumb = result["url"], result["title"], result["thumb"]
-    else:
-        video_url, title, thumb = query, "أغنية من يوتيوب", None
+    await zedevent.edit(SONG_SENDING_STRING)
 
     try:
-        # تحميل الفيديو عبر API dfkz
-        api_res = requests.get(f"{API_BASE}{video_url}").json()
-        video_link = api_res.get("url")
-        if not video_link:
-            return await zedevent.edit("❌ لم أتمكن من جلب رابط التحميل من API.")
+        api_response = requests.get(API_URL + video_link).json()
+        if not api_response.get("success"):
+            return await zedevent.edit("❌ فشل التحميل من API.")
+        download_url = api_response.get("audio") or api_response.get("url")
+        title = api_response.get("title", "اغنية")
+        thumb = api_response.get("thumb")
 
-        # تحويل الفيديو إلى صوت mp3
-        audio_file = "temp_audio.mp3"
-        cmd = ["ffmpeg", "-i", video_link, "-vn", "-ab", "192k", "-ar", "44100", "-y", audio_file]
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        if not os.path.exists(audio_file):
-            return await zedevent.edit("❌ فشل استخراج الصوت من الفيديو.")
+        if not download_url:
+            return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الصوتي.")
 
         await event.client.send_file(
             event.chat_id,
-            file=audio_file,
-            caption=f"🎶 **العنوان:** {title}\n📺 [فتح على يوتيوب]({video_url})",
-            thumb=thumb,
-            reply_to=reply_to_id
-        )
-        await zedevent.delete()
-    except Exception as e:
-        LOGS.error(str(e))
-        await zedevent.edit("❌ حدث خطأ أثناء التحميل.")
-    finally:
-        if audio_file and os.path.exists(audio_file):
-            os.remove(audio_file)
-
-# ----------------------- تحميل فيديو -----------------------
-@zedub.zed_cmd(pattern="فيديو(?:\s|$)([\s\S]*)")
-async def yt_search_video(event):
-    reply_to_id = await reply_id(event)
-    query = event.pattern_match.group(1)
-    if not query:
-        return await edit_or_reply(event, "**⚠️ الرجاء كتابة اسم الفيديو أو الرابط.**")
-
-    zedevent = await edit_or_reply(event, "📹 **جاري البحث عن الفيديو...**")
-
-    if not query.startswith("http"):
-        result = search_youtube(query)
-        if not result:
-            return await zedevent.edit("❌ لم أجد نتائج للبحث.")
-        video_url, title, thumb = result["url"], result["title"], result["thumb"]
-    else:
-        video_url, title, thumb = query, "فيديو من يوتيوب", None
-
-    try:
-        api_res = requests.get(f"{API_BASE}{video_url}").json()
-        video_link = api_res.get("url")
-        if not video_link:
-            return await zedevent.edit("❌ لم أتمكن من جلب رابط التحميل من API.")
-
-        await event.client.send_file(
-            event.chat_id,
-            file=video_link,
-            caption=f"🎬 **العنوان:** {title}",
-            thumb=thumb,
+            download_url,
+            caption=f"**⎉╎البحث :** `{title}`",
+            thumb=thumb if thumb else None,
+            force_document=False,
             supports_streaming=True,
-            reply_to=reply_to_id
+            reply_to=reply_to_id,
         )
         await zedevent.delete()
     except Exception as e:
-        LOGS.error(str(e))
-        await zedevent.edit("❌ حدث خطأ أثناء التحميل.")
+        await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`{e}`")
+
+
+@zedub.zed_cmd(
+    pattern="فيديو(?:\s|$)([\s\S]*)",
+    command=("فيديو", plugin_category),
+    info={
+        "header": "لـ تحميـل مقـاطـع الفيـديـو مـن يـوتيـوب",
+        "الاسـتخـدام": "{tr}فيديو + اسـم المقطـع",
+        "مثــال": "{tr}فيديو حالات واتس",
+    },
+)
+async def vsong(event):
+    reply_to_id = await reply_id(event)
+    reply = await event.get_reply_message()
+    query = event.pattern_match.group(1) or (reply.message if reply else None)
+    if not query:
+        return await edit_or_reply(event, "**⎉╎قم باضافـة الاغنيـه للامـر .. فيديو + اسـم الفيديـو**")
+
+    zedevent = await edit_or_reply(event, "**╮ جـارِ البحث ؏ـن الفيديـو... 🎧♥️╰**")
+    video_link = await yt_search(str(query))
+    if not url(video_link):
+        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}")
+
+    await zedevent.edit("**╮ جـارِ تحميـل الفيديـو... 🎧♥️╰**")
+
+    try:
+        api_response = requests.get(API_URL + video_link).json()
+        if not api_response.get("success"):
+            return await zedevent.edit("❌ فشل التحميل من API.")
+        download_url = api_response.get("video") or api_response.get("url")
+        title = api_response.get("title", "فيديو")
+        thumb = api_response.get("thumb")
+
+        if not download_url:
+            return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الفيديو.")
+
+        await event.client.send_file(
+            event.chat_id,
+            download_url,
+            caption=f"**⎉╎البحث :** `{title}`",
+            thumb=thumb if thumb else None,
+            supports_streaming=True,
+            reply_to=reply_to_id,
+        )
+        await zedevent.delete()
+    except Exception as e:
+        await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`{e}`")
