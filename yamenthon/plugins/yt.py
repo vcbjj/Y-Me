@@ -62,7 +62,8 @@ def pick_link(data: dict, want_audio=False):
 
 
 # حقوق الاسطوره عاشق الصمت @T_A_Tl 
-@zedub.zed_cmd(pattern="تحميل(?: فيديو)?(?: |$)(.*)")
+# 🔹 هاندلر تحميل الفيديو فقط
+@zedub.zed_cmd(pattern="تحميل(?: |$)(?!فديو)(.*)")
 async def cmd_download_video(event):
     reply = await event.get_reply_message()
     raw = (event.pattern_match.group(1) or "").strip()
@@ -92,11 +93,11 @@ async def cmd_download_video(event):
         await m.delete()
     except Exception as e:
         await m.edit(f"✘ خطأ: {e}")
-# حقوق الاسطوره عاشق الصمت @T_A_Tl 
 
 
 
-@zedub.zed_cmd(pattern="تحميل(?: صوت)?(?: |$)(.*)")
+# 🔹 هاندلر تحميل الصوت فقط
+@zedub.zed_cmd(pattern="تحميل صوت(?: |$)(.*)")
 async def cmd_download_audio(event):
     reply = await event.get_reply_message()
     raw = (event.pattern_match.group(1) or "").strip()
@@ -120,7 +121,6 @@ async def cmd_download_audio(event):
                 audio_link = link
                 break
 
-        # 🔸 إذا لم نجد رابط صوت، نأخذ أقل جودة فيديو ونحوّله
         if not audio_link:
             audio_link = min(links, key=lambda x: int(x.get("clen", "999999999")))
 
@@ -138,12 +138,11 @@ async def cmd_download_audio(event):
         if not os.path.exists(audio_file):
             return await m.edit("✘ فشل استخراج الصوت")
 
-        # 🔹 إرسال الملف الصوتي فقط
         await event.client.send_file(
             event.chat_id,
             file=audio_file,
             caption=f"🎶 {data.get('title','')}",
-            voice_note=False  # يضمن أنه صوت عادي وليس "voice"
+            voice_note=False
         )
 
         await m.delete()
