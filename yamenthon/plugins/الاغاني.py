@@ -47,6 +47,8 @@ async def yt_search_audio(event):
 
     zedevent = await edit_or_reply(event, "🎵 **جاري البحث عن الأغنية...**")
 
+    audio_file = None  # <- هنا تعريف المتغير مسبقًا
+
     if not query.startswith("http"):
         result = search_youtube(query)
         if not result:
@@ -82,7 +84,7 @@ async def yt_search_audio(event):
         LOGS.error(str(e))
         await zedevent.edit("❌ حدث خطأ أثناء التحميل.")
     finally:
-        if os.path.exists(audio_file):
+        if audio_file and os.path.exists(audio_file):
             os.remove(audio_file)
 
 # ----------------------- تحميل فيديو -----------------------
