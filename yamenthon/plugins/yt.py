@@ -114,20 +114,29 @@ async def cmd_download_audio(event):
         if not links:
             return await m.edit("✘ لم أجد أي روابط داخل JSON")
 
-        # 🔹 نختار رابط صوت حقيقي إن وجد
+        # 🔹 نختار رابط صوت مناسب
         audio_link = None
         for link in links:
             if link.get("type") == "audio" or "audio" in link.get("quality", "").lower() or link.get("ext") in ["mp3", "m4a"]:
                 audio_link = link
                 break
-
         if not audio_link:
             audio_link = min(links, key=lambda x: int(x.get("clen", "999999999")))
 
         video_url = audio_link["url"]
         audio_file = "temp_audio.mp3"
+        thumb_file = "thumb.jpg"
 
-        # 🔸 التحميل والتحويل إلى MP3 باستخدام ffmpeg مباشرة
+        # 🔸 تحميل الصورة المصغرة إن وجدت
+        thumb_url = data.get("thumb") or data.get("thumbnail")
+        if thumb_url:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(thumb_url) as resp:
+                    if resp.status == 200:
+                        with open(thumb_file, "wb") as f:
+                            f.write(await resp.read())
+
+        # 🔸 استخراج الصوت من الفيديو
         cmd = [
             "ffmpeg", "-i", video_url,
             "-vn", "-ab", "192k", "-ar", "44100",
@@ -138,16 +147,21 @@ async def cmd_download_audio(event):
         if not os.path.exists(audio_file):
             return await m.edit("✘ فشل استخراج الصوت")
 
+        # 🔹 إرسال الصوت مع الصورة
         await event.client.send_file(
             event.chat_id,
             file=audio_file,
-            caption=f"🎶 {data.get('title','')}",
-            voice_note=False
+            thumb=thumb_file if os.path.exists(thumb_file) else None,
+            caption=f"🎶 {data.get('title','')}\n📺 [فتح على يوتيوب]({url})",
+            force_document=False
         )
 
         await m.delete()
+
     except Exception as e:
         await m.edit(f"✘ خطأ: {e}")
+
     finally:
-        if os.path.exists("temp_audio.mp3"):
-            os.remove("temp_audio.mp3")
+        for f in ["temp_audio.mp3", "thumb.jpg"]:
+            if os.path.exists(f):
+                os.remove(f)
