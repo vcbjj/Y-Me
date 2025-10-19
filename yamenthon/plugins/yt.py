@@ -113,44 +113,42 @@ async def cmd_download_audio(event):
         if not links:
             return await m.edit("✘ لم أجد أي روابط داخل JSON")
 
-        # نختار أقل جودة فيديو عشان نطلع منه الصوت
-        try:
-            link = min(links, key=lambda x: int(x.get("clen", "999999999")))
-        except Exception:
-            return await m.edit("✘ لم أستطع تحديد رابط صالح")
+        # 🔹 نختار رابط صوت حقيقي إن وجد
+        audio_link = None
+        for link in links:
+            if link.get("type") == "audio" or "audio" in link.get("quality", "").lower() or link.get("ext") in ["mp3", "m4a"]:
+                audio_link = link
+                break
 
-        video_file = "temp_video.mp4"
+        # 🔸 إذا لم نجد رابط صوت، نأخذ أقل جودة فيديو ونحوّله
+        if not audio_link:
+            audio_link = min(links, key=lambda x: int(x.get("clen", "999999999")))
+
+        video_url = audio_link["url"]
         audio_file = "temp_audio.mp3"
 
-        # تحميل الفيديو
-        async with aiohttp.ClientSession() as session:
-            async with session.get(link["url"]) as resp:
-                if resp.status != 200:
-                    return await m.edit("✘ فشل تحميل الفيديو من الرابط")
-                with open(video_file, "wb") as f:
-                    f.write(await resp.read())
-
-        # استخراج الصوت باستخدام ffmpeg
+        # 🔸 التحميل والتحويل إلى MP3 باستخدام ffmpeg مباشرة
         cmd = [
-            "ffmpeg", "-i", video_file,
+            "ffmpeg", "-i", video_url,
             "-vn", "-ab", "192k", "-ar", "44100",
             "-y", audio_file
         ]
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         if not os.path.exists(audio_file):
-            return await m.edit("✘ فشل تحويل الفيديو إلى صوت")
+            return await m.edit("✘ فشل استخراج الصوت")
 
-        # إرسال الملف الصوتي
+        # 🔹 إرسال الملف الصوتي فقط
         await event.client.send_file(
             event.chat_id,
             file=audio_file,
-            caption=f"🎶 {data.get('title','')}"
+            caption=f"🎶 {data.get('title','')}",
+            voice_note=False  # يضمن أنه صوت عادي وليس "voice"
         )
+
         await m.delete()
     except Exception as e:
         await m.edit(f"✘ خطأ: {e}")
     finally:
-        for f in ["temp_video.mp4", "temp_audio.mp3"]:
-            if os.path.exists(f):
-                os.remove(f)
+        if os.path.exists("temp_audio.mp3"):
+            os.remove("temp_audio.mp3")
