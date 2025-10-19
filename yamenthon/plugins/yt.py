@@ -63,7 +63,7 @@ def pick_link(data: dict, want_audio=False):
 
 # حقوق الاسطوره عاشق الصمت @T_A_Tl 
 # 🔹 هاندلر تحميل الفيديو فقط
-@zedub.zed_cmd(pattern="تحميل(?: |$)(?!فديو)(.*)")
+@zedub.zed_cmd(pattern="تحميل فديو(?: |$)(.*)")
 async def cmd_download_video(event):
     reply = await event.get_reply_message()
     raw = (event.pattern_match.group(1) or "").strip()
