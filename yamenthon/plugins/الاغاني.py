@@ -187,6 +187,96 @@ async def song(event):
     finally:
         if os.path.exists(video_path):
             os.remove(video_path)
+@zedub.zed_cmd(
+    pattern="بحث(320)?(?:\s|$)([\s\S]*)",
+    command=("بحث", plugin_category),
+    info={
+        "header": "لـ تحميـل الاغـانـي مـن يـوتيـوب",
+        "امـر مضـاف": {"320": "لـ البحـث عـن الاغـانـي وتحميـلهـا بـدقـه عـاليـه 320k"},
+        "الاسـتخـدام": "{tr}بحث + اسـم الاغنيـه",
+        "مثــال": "{tr}بحث حسين الجسمي احبك",
+    },
+)
+async def song(event):
+    reply_to_id = await reply_id(event)
+    reply = await event.get_reply_message()
+    query = event.pattern_match.group(2) or (reply.message if reply else None)
+    if not query:
+        return await edit_or_reply(event, "**⎉╎قم باضافـة الاغنيـه للامـر .. بحث + اسـم الاغنيـه**")
+
+    zedevent = await edit_or_reply(event, SONG_SEARCH_STRING)
+    video_link = await yt_search(str(query))
+
+    if not video_link:
+        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}\n\n⚠️ **نتائج البحث:** لا يوجد أي فيديو.")
+    else:
+        await zedevent.edit(f"**🔍 تم إيجاد الفيديو:**\n`{video_link}`\n\nجاري التحميل...")
+
+    if not url(video_link):
+        return await zedevent.edit(f"**⎉╎الرابط غير صالح:** {video_link}")
+
+    await zedevent.edit(SONG_SENDING_STRING)
+
+    try:
+        resp = requests.get(API_URL, params={"url": video_link}, timeout=20)
+    except Exception as e:
+        return await zedevent.edit(f"❌ فشل التحميل من API.\n`request error: {e}`")
+
+    parsed = parse_api_response(resp)
+    if not parsed.get("ok"):
+        err = parsed.get("error", "unknown")
+        data = parsed.get("data")
+        msg = f"❌ فشل التحميل من API.\n`{err}`"
+        if data:
+            msg += "\n`" + (str(data)[:800].replace("`", "'")) + "`"
+        return await zedevent.edit(msg)
+
+    api_response = parsed.get("data", {})
+    title = api_response.get("title", "اغنية")
+    thumb = api_response.get("thumb")
+
+    # استخراج رابط الفيديو أو الصوت
+    link_info = extract_first_link(api_response, "video") or extract_first_link(api_response, "audio")
+    if not link_info:
+        return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الصوتي.")
+
+    # تأكد أن link_info dict قبل استخدام .get()
+    download_url = link_info.get("url") if isinstance(link_info, dict) else str(link_info)
+    quality = link_info.get("quality", "غير معروف") if isinstance(link_info, dict) else "غير معروف"
+    await zedevent.edit(f"📥 **جاري تحميل الاغنية:**\n🎵 {title}\n💡 الجودة: {quality}")
+
+    safe_title = re.sub(r"[\\/*?\"<>|:]", "_", title)[:200]
+    video_path = f"/tmp/{safe_title}.mp4"
+    audio_path = f"/tmp/{safe_title}.mp3"
+
+    # تحميل الفيديو
+    try:
+        dl_resp = requests.get(download_url, stream=True, timeout=30)
+        with open(video_path, "wb") as f:
+            for chunk in dl_resp.iter_content(chunk_size=1024 * 64):
+                if chunk:
+                    f.write(chunk)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء تحميل الفيديو:\n`{e}`")
+
+    # تحويل الفيديو إلى صوت باستخدام ffmpeg
+    try:
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i", video_path,
+            "-vn",
+            "-ab", "128k",
+            "-ar", "44100",
+            "-f", "mp3",
+            audio_path
+        ]
+        subprocess.run(cmd, check=True)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحويل إلى صوت:\n`{e}`")
+    finally:
+        if os.path.exists(video_path):
+            os.remove(video_path)
 
     # إرسال الملف الصوتي
     try:
@@ -204,8 +294,7 @@ async def song(event):
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
-    await zedevent.delete()
-
+    await zedevent.delete()    
 
 @zedub.zed_cmd(
     pattern="فيديو(?:\s|$)([\s\S]*)",
