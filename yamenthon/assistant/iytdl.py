@@ -93,7 +93,7 @@ async def iytdl_inline(event):
     )
 )
 @check_owner
-async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
+async def ytdl_download_callback(c_q: CallbackQuery):
     yt_code = (
         str(c_q.pattern_match.group(1).decode("UTF-8"))
         if c_q.pattern_match.group(1) is not None
@@ -109,78 +109,87 @@ async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
         if c_q.pattern_match.group(3) is not None
         else None
     )
-    if str(choice_id).isdigit():
-        choice_id = int(choice_id)
-        if choice_id == 0:
-            await c_q.answer("🔄  جـارِ ...", alert=False)
-            await c_q.edit(buttons=(await download_button(yt_code)))
-            return
     startTime = time()
-    choice_str, disp_str = get_choice_by_id(choice_id, downtype)
     media_type = "فيديو" if downtype == "v" else "مقطع صوتي"
-    callback_continue = f"جار تحميل {media_type} يرجى الانتظار"
-    callback_continue += f"\n\nصيغـة الملـف : {disp_str}"
-    await c_q.answer(callback_continue, alert=True)
-    upload_msg = await c_q.client.send_message(
-        BOTLOG_CHATID, "**⌔╎جـارِ الـرفـع ...**"
+    disp_str = choice_id if not str(choice_id).isdigit() else f"id {choice_id}"
+
+    yt_url = f"https://www.youtube.com/watch?v={yt_code}"
+
+    await c_q.answer(f"جـارِ تحميل {media_type} عبر الـ API ...", alert=True)
+    upload_msg = await c_q.client.send_message(BOTLOG_CHATID, f"⌔╎جـارِ تحميـل {media_type} ...")
+
+    api_url = f"https://api.dfkz.xo.je/apis/v3/download.php?url={yt_url}"
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url) as resp:
+                if resp.status != 200:
+                    return await upload_msg.edit("❌ فشل الاتصال بالـ API.")
+                data = await resp.json()
+    except Exception as e:
+        return await upload_msg.edit(f"⚠️ خطأ أثناء الاتصال بالـ API:\n{e}")
+
+    # تحقق من وجود رابط التحميل
+    download_url = None
+    title = data.get("title") or "youtube_video"
+    thumb = data.get("thumbnail")
+
+    # نحاول استخراج رابط الصوت أو الفيديو
+    if "audio" in data:
+        download_url = data["audio"].get("url") or data["audio"].get("download_url")
+    elif "video" in data:
+        download_url = data["video"].get("url") or data["video"].get("download_url")
+
+    if not download_url:
+        return await upload_msg.edit("❌ لم يتم العثور على رابط التحميل في استجابة الـ API.")
+
+    # تحميل الملف عبر ffmpeg (تحويل إلى صوت إذا لزم)
+    temp_path = f"{Config.TEMP_DIR}/{startTime}"
+    os.makedirs(temp_path, exist_ok=True)
+
+    file_path = os.path.join(temp_path, f"{title}.mp3" if downtype == "a" else f"{title}.mp4")
+
+    cmd = [
+        "ffmpeg",
+        "-i", download_url,
+        "-vn" if downtype == "a" else "-c", "copy",
+        file_path,
+        "-y"
+    ]
+
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
     )
-    yt_url = BASE_YT_URL + yt_code
-    await c_q.edit(
-        f"<b>⌔╎جـارِ تحميـل 🎧 {media_type} ...</b>\n\n  <a href={yt_url}>  <b>⌔╎الـرابـط 📎</b></a>\n🎚 <b>⌔╎الصيغـه </b> : {disp_str}",
-        parse_mode="html",
-    )
-    if downtype == "v":
-        retcode = await _tubeDl(url=yt_url, starttime=startTime, uid=choice_str)
-    else:
-        retcode = await _mp3Dl(url=yt_url, starttime=startTime, uid=choice_str)
-    if retcode != 0:
-        return await upload_msg.edit(str(retcode))
-    _fpath = ""
-    thumb_pic = None
-    for _path in glob.glob(os.path.join(Config.TEMP_DIR, str(startTime), "*")):
-        if _path.lower().endswith((".jpg", ".png", ".webp")):
-            thumb_pic = _path
-        else:
-            _fpath = _path
-    if not _fpath:
-        await edit_delete(upload_msg, "**⌔╎اووبـس .. لم يتـم إيجـاد المطلـوب ؟!**")
-        return
-    if not thumb_pic:
-        thumb_pic = str(await pool.run_in_thread(download)(await get_ytthumb(yt_code)))
-    attributes, mime_type = get_attributes(str(_fpath))
-    ul = io.open(Path(_fpath), "rb")
-    uploaded = await c_q.client.fast_upload_file(
-        file=ul,
-        progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-            progress(
-                d,
-                t,
-                c_q,
-                startTime,
-                "trying to upload",
-                file_name=os.path.basename(Path(_fpath)),
-            )
-        ),
-    )
-    ul.close()
-    media = types.InputMediaUploadedDocument(
-        file=uploaded,
-        mime_type=mime_type,
-        attributes=attributes,
-        force_file=False,
-        thumb=await c_q.client.upload_file(thumb_pic) if thumb_pic else None,
-    )
-    uploaded_media = await c_q.client.send_file(
+    await proc.communicate()
+
+    if not os.path.exists(file_path):
+        return await upload_msg.edit("⚠️ فشل التحويل أو التحميل عبر ffmpeg.")
+
+    # رفع الفيديو أو الصوت إلى تيليجرام
+    thumb_file = None
+    if thumb:
+        thumb_file = os.path.join(temp_path, "thumb.jpg")
+        try:
+            import wget
+            wget.download(thumb, thumb_file)
+        except Exception:
+            thumb_file = None
+
+    caption = f"<b>⌔╎الاسـم :</b> <code>{os.path.basename(file_path)}</code>\n🎧 <b>النوع:</b> {media_type}"
+    await c_q.client.send_file(
         BOTLOG_CHATID,
-        file=media,
-        caption=f"<b>⌔╎الاسـم : </b><code>{os.path.basename(Path(_fpath))}</code>",
+        file=file_path,
+        thumb=thumb_file,
+        caption=caption,
         parse_mode="html",
     )
+
     await upload_msg.delete()
     await c_q.edit(
-        text=f"<b>⌔╎الـرابـط 📎: </b> <a href={yt_url}><b>{os.path.basename(Path(_fpath))}</b></a>",
-        file=uploaded_media.media,
-        parse_mode="html",
+        f"<b>✅ تم تحميل ورفع {media_type} بنجاح عبر الـ API</b>",
+        parse_mode="html"
     )
 
 
