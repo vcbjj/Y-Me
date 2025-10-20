@@ -110,7 +110,7 @@ def extract_first_link(api_response, file_type="audio"):
 async def song(event):
     reply_to_id = await reply_id(event)
     reply = await event.get_reply_message()
-    query = event.pattern_match.group(2) or (reply.message if reply else None)
+    query = event.pattern_match.group(1) or (reply.message if reply else None)
     if not query:
         return await edit_or_reply(event, "**⎉╎قم باضافـة الاغنيـه للامـر .. بحث + اسـم الاغنيـه**")
 
