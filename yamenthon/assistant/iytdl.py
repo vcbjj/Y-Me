@@ -88,7 +88,7 @@ async def iytdl_inline(event):
         await zedevent.edit("**⌔╎عـذراً .. لم اجد اي نتائـج**")
 
 
-@zedub.tgbot.on(
+@.tgbot.on(
     CallbackQuery(
         data=re.compile(b"^ytdl_download_(.*)_([\d]+|mkv|mp4|mp3)(?:_(a|v))?")
     )
@@ -166,9 +166,106 @@ async def ytdl_download_callback(c_q: CallbackQuery):
     await proc.communicate()
 
     if not os.path.exists(file_path):
+@zedub.tgbot.on(
+    CallbackQuery(
+        data=re.compile(b"^ytdl_download_(.*)_([\d]+|mkv|mp4|mp3)(?:_(a|v))?")
+    )
+)
+@check_owner
+async def ytdl_download_callback(c_q: CallbackQuery):
+    yt_code = (
+        str(c_q.pattern_match.group(1).decode("UTF-8"))
+        if c_q.pattern_match.group(1) is not None
+        else None
+    )
+    choice_id = (
+        str(c_q.pattern_match.group(2).decode("UTF-8"))
+        if c_q.pattern_match.group(2) is not None
+        else None
+    )
+    downtype = (
+        str(c_q.pattern_match.group(3).decode("UTF-8"))
+        if c_q.pattern_match.group(3) is not None
+        else None
+    )
+
+    startTime = time()
+    media_type = "فيديو" if downtype == "v" else "مقطع صوتي"
+    yt_url = f"https://www.youtube.com/watch?v={yt_code}"
+
+    await c_q.answer(f"📥 جاري تحميل {media_type} عبر الـ API ...", alert=True)
+    upload_msg = await c_q.client.send_message(
+        BOTLOG_CHATID, f"⌔╎جاري تحميل {media_type} من YouTube ..."
+    )
+
+    api_url = f"https://api.dfkz.xo.je/apis/v3/download.php?url={yt_url}"
+
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url) as resp:
+                if resp.status != 200:
+                    return await upload_msg.edit("❌ فشل الاتصال بالـ API.")
+                data = await resp.json(content_type=None)
+    except Exception as e:
+        return await upload_msg.edit(f"⚠️ خطأ أثناء الاتصال بالـ API:\n<code>{e}</code>", parse_mode="html")
+
+    # استخراج المعلومات
+    title = data.get("title") or "YouTube Video"
+    thumb = data.get("thumbnail") or data.get("thumb")
+    download_url = None
+
+    # ✅ محاولة استخراج من الحقول الشائعة
+    links = data.get("links") or data.get("data") or []
+    if isinstance(links, list):
+        for item in links:
+            if not isinstance(item, dict):
+                continue
+            typ = str(item.get("type", "")).lower()
+            ext = str(item.get("ext", "")).lower()
+            quality = str(item.get("quality", "")).lower()
+            # نختار أول فيديو mp4 بجودة جيدة
+            if "mp4" in ext or "video" in typ:
+                download_url = item.get("url") or item.get("download_url")
+                break
+
+    if not download_url and "url" in data:
+        download_url = data["url"]
+
+    if not download_url:
+        raw_preview = ujson.dumps(data, indent=2, ensure_ascii=False)
+        short_preview = (raw_preview[:1500] + "...") if len(raw_preview) > 1500 else raw_preview
+        return await upload_msg.edit(
+            f"❌ لم يتم العثور على رابط التحميل في الرد.\n\n📦 الرد من الـ API:\n<code>{short_preview}</code>",
+            parse_mode="html",
+        )
+
+    # التحميل باستخدام ffmpeg
+    temp_path = f"{Config.TEMP_DIR}/{startTime}"
+    os.makedirs(temp_path, exist_ok=True)
+    safe_title = re.sub(r"[\\/*?\"<>|:]", "_", title)
+    file_path = os.path.join(temp_path, f"{safe_title}.mp4")
+
+    try:
+        if downtype == "a":
+            cmd = ["ffmpeg", "-i", download_url, "-vn", "-ab", "192k", "-ar", "44100", "-y", file_path.replace(".mp4", ".mp3")]
+            file_path = file_path.replace(".mp4", ".mp3")
+        else:
+            cmd = ["ffmpeg", "-i", download_url, "-c", "copy", "-y", file_path]
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await proc.communicate()
+    except Exception as e:
+        return await upload_msg.edit(f"⚠️ فشل التحميل عبر ffmpeg:\n`{e}`")
+
+    if not os.path.exists(file_path):
         return await upload_msg.edit("⚠️ فشل التحويل أو التحميل عبر ffmpeg.")
 
-    # رفع الفيديو أو الصوت إلى تيليجرام
+    # تحميل الصورة المصغرة إن وجدت
     thumb_file = None
     if thumb:
         thumb_file = os.path.join(temp_path, "thumb.jpg")
@@ -178,7 +275,7 @@ async def ytdl_download_callback(c_q: CallbackQuery):
         except Exception:
             thumb_file = None
 
-    caption = f"<b>⌔╎الاسـم :</b> <code>{os.path.basename(file_path)}</code>\n🎧 <b>النوع:</b> {media_type}"
+    caption = f"<b>⌔╎العنوان :</b> <code>{title}</code>\n🎞 <b>النوع:</b> {media_type}"
     await c_q.client.send_file(
         BOTLOG_CHATID,
         file=file_path,
@@ -188,10 +285,7 @@ async def ytdl_download_callback(c_q: CallbackQuery):
     )
 
     await upload_msg.delete()
-    await c_q.edit(
-        f"<b>✅ تم تحميل ورفع {media_type} بنجاح عبر الـ API</b>",
-        parse_mode="html"
-    )
+    await c_q.edit(f"✅ <b>تم تحميل ورفع {media_type} بنجاح عبر الـ API</b>", parse_mode="html")
 
 
 @zedub.tgbot.on(
