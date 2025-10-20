@@ -62,15 +62,27 @@ async def song(event):
 
     zedevent = await edit_or_reply(event, SONG_SEARCH_STRING)
     video_link = await yt_search(str(query))
-    if not video_link or not url(video_link):
-        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}")
+
+    # ✅ إضافة أمر الطباعة لمعرفة نتيجة البحث
+    if not video_link:
+        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}\n\n⚠️ **نتائج البحث:** لا يوجد أي فيديو.")
+    else:
+        await zedevent.edit(f"**🔍 تم إيجاد الفيديو:**\n`{video_link}`\n\nجاري التحميل...")
+
+    if not url(video_link):
+        return await zedevent.edit(f"**⎉╎الرابط غير صالح:** {video_link}")
 
     await zedevent.edit(SONG_SENDING_STRING)
 
     try:
         api_response = requests.get(API_URL + video_link).json()
+
+        # ✅ طباعة استجابة الـ API لمعرفة النتيجة الفعلية
+        await event.reply(f"**📡 رد الـ API:**\n`{api_response}`")
+
         if not api_response.get("success"):
             return await zedevent.edit("❌ فشل التحميل من API.")
+
         download_url = api_response.get("audio") or api_response.get("url")
         title = api_response.get("title", "اغنية")
         thumb = api_response.get("thumb")
@@ -110,13 +122,24 @@ async def vsong(event):
 
     zedevent = await edit_or_reply(event, "**╮ جـارِ البحث ؏ـن الفيديـو... 🎧♥️╰**")
     video_link = await yt_search(str(query))
-    if not video_link or not url(video_link):
-        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}")
+
+    # ✅ طباعة الرابط الناتج من البحث
+    if not video_link:
+        return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}\n\n⚠️ **نتائج البحث:** لا يوجد أي فيديو.")
+    else:
+        await zedevent.edit(f"**🔍 تم إيجاد الفيديو:**\n`{video_link}`\n\nجاري التحميل...")
+
+    if not url(video_link):
+        return await zedevent.edit(f"**⎉╎الرابط غير صالح:** {video_link}")
 
     await zedevent.edit("**╮ جـارِ تحميـل الفيديـو... 🎧♥️╰**")
 
     try:
         api_response = requests.get(API_URL + video_link).json()
+
+        # ✅ عرض رد الـ API لمعرفة النتيجة
+        await event.reply(f"**📡 رد الـ API:**\n`{api_response}`")
+
         if not api_response.get("success"):
             return await zedevent.edit("❌ فشل التحميل من API.")
         download_url = api_response.get("video") or api_response.get("url")
