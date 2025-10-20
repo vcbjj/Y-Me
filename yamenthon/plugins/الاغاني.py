@@ -5,6 +5,7 @@ import os
 import requests
 import re
 import json
+import subprocess
 
 from telethon import types
 from telethon.errors.rpcerrorlist import YouBlockedUserError
@@ -126,15 +127,14 @@ async def song(event):
 
     await zedevent.edit(SONG_SENDING_STRING)
 
-    # نرسل طلب للـ API باستخدام params (ترميز صحيح)
+    # إرسال طلب للـ API
     try:
         resp = requests.get(API_URL, params={"url": video_link}, timeout=20)
     except Exception as e:
         return await zedevent.edit(f"❌ فشل التحميل من API.\n`request error: {e}`")
 
     parsed = parse_api_response(resp)
-    if not parsed.get("ok"):
-        # عرض سبب مفصل بدون طباعة كل الـ JSON
+    if not parsed.ge("ok"):
         err = parsed.get("error", "unknown")
         data = parsed.get("data")
         msg = f"❌ فشل التحميل من API.\n`{err}`"
@@ -143,67 +143,67 @@ async def song(event):
         return await zedevent.edit(msg)
 
     api_response = parsed.get("data", {})
-
     title = api_response.get("title", "اغنية")
     thumb = api_response.get("thumb")
 
-    # استخراج أول رابط صوتي إن أمكن، وإلا رابط فيديو
-    link_info = extract_first_link(api_response, "audio") or extract_first_link(api_response, "video")
+    # استخراج رابط فيديو بأقل جودة
+    link_info = extract_first_link(api_response, "video") or extract_first_link(api_response, "audio")
     if not link_info:
         return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الصوتي.")
 
     download_url = link_info.get("url")
     quality = link_info.get("quality", "غير معروف")
-
     await zedevent.edit(f"📥 **جاري تحميل الاغنية:**\n🎵 {title}\n💡 الجودة: {quality}")
 
-    # تحميل مؤقت مع فحص الحجم لـ safety (تجنب تنزيل ملفات ضخمة جداً بلا تحذير)
+    safe_title = re.sub(r"[\\/*?\"<>|:]", "_", title)[:200]
+    video_path = f"/tmp/{safe_title}.mp4"
+    audio_path = f"/tmp/{safe_title}.mp3"
+
+    # تحميل الفيديو
     try:
         dl_resp = requests.get(download_url, stream=True, timeout=30)
-    except Exception as e:
-        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`download request error: {e}`")
-
-    if dl_resp.status_code != 200:
-        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`bad status {dl_resp.status_code}`")
-
-    # افحص طول المحتوى إن توفر
-    content_length = dl_resp.headers.get("content-length")
-    try:
-        if content_length and int(content_length) > 200 * 1024 * 1024:
-            return await zedevent.edit("⚠️ الملف أكبر من 200MB. التحميل مُوقوف لمنع استهلاك موارد.")
-    except Exception:
-        pass
-
-    safe_title = re.sub(r"[\\/*?\"<>|:]", "_", title)[:200]
-    file_path = f"/tmp/{safe_title}.mp3" if link_info.get("type") == "audio" else f"/tmp/{safe_title}.mp4"
-
-    try:
-        with open(file_path, "wb") as f:
+        with open(video_path, "wb") as f:
             for chunk in dl_resp.iter_content(chunk_size=1024 * 64):
                 if chunk:
                     f.write(chunk)
     except Exception as e:
-        return await zedevent.edit(f"⚠️ حدث خطأ أثناء كتابة الملف:\n`{e}`")
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء تحميل الفيديو:\n`{e}`")
 
+    # تحويل الفيديو إلى صوت باستخدام ffmpeg
+    try:
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i", video_path,
+            "-vn",
+            "-ab", "128k",
+            "-ar", "44100",
+            "-f", "mp3",
+            audio_path
+        ]
+        subprocess.run(cmd, check=True)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحويل إلى صوت:\n`{e}`")
+    finally:
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+    # إرسال الملف الصوتي
     try:
         await event.client.send_file(
             event.chat_id,
-            file=file_path,
+            file=audio_path,
             caption=f"**⎉╎البحث :** `{title}`",
             thumb=thumb if thumb else None,
             supports_streaming=True,
             reply_to=reply_to_id,
         )
     except Exception as e:
-        # حاول إرسال كرابط خارجي لو فشل رفع الملف
-        try:
-            return await zedevent.edit(f"⚠️ حدث خطأ أثناء إرسال الملف:\n`{e}`\n\nيمكنك محاولة هذا الرابط مباشرة:\n{download_url}")
-        finally:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء إرسال الملف الصوتي:\n`{e}`")
+    finally:
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
 
-    if os.path.exists(file_path):
-        os.remove(file_path)
     await zedevent.delete()
 
 
