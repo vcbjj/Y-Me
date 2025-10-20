@@ -98,8 +98,8 @@ def extract_first_link(api_response, file_type="audio"):
 
 
 @zedub.zed_cmd(
-    pattern="بحث(اغنيه)?(?:\s|$)([\s\S]*)",
-    command=("بحث", plugin_category),
+    pattern=r"(?:بحث|اغنيه)(?:\s+|$)([\s\S]*)",
+    command=("بحث","اغنيه", plugin_category),
     info={
         "header": "لـ تحميـل الاغـانـي مـن يـوتيـوب",
         "امـر مضـاف": {"320": "لـ البحـث عـن الاغـانـي وتحميـلهـا بـدقـه عـاليـه 320k"},
@@ -207,8 +207,8 @@ async def song(event):
     await zedevent.delete()    
 
 @zedub.zed_cmd(
-    pattern="فديو|فيديو(?:\s|$)([\s\S]*)",
-    command=("فيديو", plugin_category),
+    pattern=r"(?:فديو|فيديو)(?:\s+|$)([\s\S]*)",
+    command=("فيديو","فديو", plugin_category),
     info={
         "header": "لـ تحميـل مقـاطـع الفيـديـو مـن يـوتيـوب",
         "الاسـتخـدام": "{tr}فيديو + اسـم المقطـع",
