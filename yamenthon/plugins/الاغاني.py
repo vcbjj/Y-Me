@@ -25,7 +25,7 @@ SONG_SEARCH_STRING = "<b>╮ جـارِ البحث ؏ـن الاغنيـٓه... 
 SONG_NOT_FOUND = "<b>⎉╎لـم استطـع ايجـاد المطلـوب .. جرب البحث باستخـدام الامـر (.اغنيه)</b>"
 SONG_SENDING_STRING = "<b>╮ جـارِ تحميـل الاغنيـٓه... 🎧♥️╰</b>"
 
-API_URL = "https://api.dfkz.xo.je/apis/v3/download.php?url="
+API_URL = "https://api.dfkz.xo.je/apis/v3/download.php"
 
 
 async def yt_search(query: str):
@@ -43,12 +43,56 @@ async def yt_search(query: str):
         return None
 
 
+def parse_api_response(resp):
+    """
+    يحاول تفسير استجابة الـ API بأمان:
+    - إذا كانت JSON ولها keys['links'] يعتبرها ناجحة
+    - إذا كانت تحتوي success==True يحترمها
+    - يعيد dict أو يعيد خطأ للعرض
+    """
+    try:
+        data = resp.json()
+    except ValueError:
+        # ليس JSON
+        return {"ok": False, "error": "API returned non-json response", "text": resp.text[:1000]}
+    except Exception as e:
+        return {"ok": False, "error": f"request error: {e}"}
+
+    # إذا وُجد حقل success واختبرناه
+    if isinstance(data, dict) and data.get("success") is not None:
+        if data.get("success"):
+            return {"ok": True, "data": data}
+        else:
+            # success:false لكن قد يحتوي على links (بعض الـ APIs لا يستخدم success)
+            if data.get("links"):
+                return {"ok": True, "data": data}
+            return {"ok": False, "error": "API returned success=false", "data": data}
+
+    # لا يوجد success — نفترض نجاح إذا وُجد links
+    if isinstance(data, dict) and data.get("links"):
+        return {"ok": True, "data": data}
+
+    # fallback: لو البنية مختلفة ابحث عن حقل شبيه
+    if isinstance(data, dict) and ("result" in data or "data" in data):
+        # حاول إعادة تشكيل مبسط إن أمكن
+        candidate = data.get("result") or data.get("data")
+        if isinstance(candidate, dict) and candidate.get("links"):
+            return {"ok": True, "data": candidate}
+    return {"ok": False, "error": "API response does not contain links", "data": data}
+
+
 def extract_first_link(api_response, file_type="audio"):
     """استخراج أول رابط صالح من رد الـ API"""
-    links = api_response.get("links", [])
+    links = api_response.get("links", []) or []
     for link in links:
-        if link.get("type") == file_type and link.get("url"):
-            return link
+        # link قد يكون dict أو سلسلة
+        if isinstance(link, dict):
+            if link.get("type") == file_type and link.get("url"):
+                return link
+        else:
+            # لو كان رابط مباشر كـ string
+            if file_type in ("video", "audio"):
+                return {"type": file_type, "url": str(link)}
     return None
 
 
@@ -82,29 +126,66 @@ async def song(event):
 
     await zedevent.edit(SONG_SENDING_STRING)
 
+    # نرسل طلب للـ API باستخدام params (ترميز صحيح)
     try:
-        api_response = requests.get(API_URL + video_link, timeout=20).json()
-        if not api_response.get("success"):
-            return await zedevent.edit("❌ فشل التحميل من API.")
+        resp = requests.get(API_URL, params={"url": video_link}, timeout=20)
+    except Exception as e:
+        return await zedevent.edit(f"❌ فشل التحميل من API.\n`request error: {e}`")
 
-        title = api_response.get("title", "اغنية")
-        thumb = api_response.get("thumb")
+    parsed = parse_api_response(resp)
+    if not parsed.get("ok"):
+        # عرض سبب مفصل بدون طباعة كل الـ JSON
+        err = parsed.get("error", "unknown")
+        data = parsed.get("data")
+        msg = f"❌ فشل التحميل من API.\n`{err}`"
+        if data:
+            msg += "\n`" + (str(data)[:800].replace("`", "'")) + "`"
+        return await zedevent.edit(msg)
 
-        # 🔍 استخراج أول رابط صوتي صالح
-        link_info = extract_first_link(api_response, "audio") or extract_first_link(api_response, "video")
-        if not link_info:
-            return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الصوتي.")
+    api_response = parsed.get("data", {})
 
-        download_url = link_info.get("url")
-        quality = link_info.get("quality", "غير معروف")
+    title = api_response.get("title", "اغنية")
+    thumb = api_response.get("thumb")
 
-        await zedevent.edit(f"📥 **جاري تحميل الاغنية:**\n🎵 {title}\n💡 الجودة: {quality}")
+    # استخراج أول رابط صوتي إن أمكن، وإلا رابط فيديو
+    link_info = extract_first_link(api_response, "audio") or extract_first_link(api_response, "video")
+    if not link_info:
+        return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الصوتي.")
 
-        # تحميل مؤقت
-        file_path = f"/tmp/{title}.mp3"
+    download_url = link_info.get("url")
+    quality = link_info.get("quality", "غير معروف")
+
+    await zedevent.edit(f"📥 **جاري تحميل الاغنية:**\n🎵 {title}\n💡 الجودة: {quality}")
+
+    # تحميل مؤقت مع فحص الحجم لـ safety (تجنب تنزيل ملفات ضخمة جداً بلا تحذير)
+    try:
+        dl_resp = requests.get(download_url, stream=True, timeout=30)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`download request error: {e}`")
+
+    if dl_resp.status_code != 200:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`bad status {dl_resp.status_code}`")
+
+    # افحص طول المحتوى إن توفر
+    content_length = dl_resp.headers.get("content-length")
+    try:
+        if content_length and int(content_length) > 200 * 1024 * 1024:
+            return await zedevent.edit("⚠️ الملف أكبر من 200MB. التحميل مُوقوف لمنع استهلاك موارد.")
+    except Exception:
+        pass
+
+    safe_title = re.sub(r"[\\/*?\"<>|:]", "_", title)[:200]
+    file_path = f"/tmp/{safe_title}.mp3" if link_info.get("type") == "audio" else f"/tmp/{safe_title}.mp4"
+
+    try:
         with open(file_path, "wb") as f:
-            f.write(requests.get(download_url, timeout=30).content)
+            for chunk in dl_resp.iter_content(chunk_size=1024 * 64):
+                if chunk:
+                    f.write(chunk)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء كتابة الملف:\n`{e}`")
 
+    try:
         await event.client.send_file(
             event.chat_id,
             file=file_path,
@@ -113,12 +194,17 @@ async def song(event):
             supports_streaming=True,
             reply_to=reply_to_id,
         )
-
-        os.remove(file_path)
-        await zedevent.delete()
-
     except Exception as e:
-        await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`{e}`")
+        # حاول إرسال كرابط خارجي لو فشل رفع الملف
+        try:
+            return await zedevent.edit(f"⚠️ حدث خطأ أثناء إرسال الملف:\n`{e}`\n\nيمكنك محاولة هذا الرابط مباشرة:\n{download_url}")
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    await zedevent.delete()
 
 
 @zedub.zed_cmd(
@@ -151,27 +237,60 @@ async def vsong(event):
     await zedevent.edit("**╮ جـارِ تحميـل الفيديـو... 🎧♥️╰**")
 
     try:
-        api_response = requests.get(API_URL + video_link, timeout=20).json()
-        if not api_response.get("success"):
-            return await zedevent.edit("❌ فشل التحميل من API.")
+        resp = requests.get(API_URL, params={"url": video_link}, timeout=20)
+    except Exception as e:
+        return await zedevent.edit(f"❌ فشل التحميل من API.\n`request error: {e}`")
 
-        title = api_response.get("title", "فيديو")
-        thumb = api_response.get("thumb")
+    parsed = parse_api_response(resp)
+    if not parsed.get("ok"):
+        err = parsed.get("error", "unknown")
+        data = parsed.get("data")
+        msg = f"❌ فشل التحميل من API.\n`{err}`"
+        if data:
+            msg += "\n`" + (str(data)[:800].replace("`", "'")) + "`"
+        return await zedevent.edit(msg)
 
-        # 🔍 استخراج أول رابط فيديو صالح
-        link_info = extract_first_link(api_response, "video") or extract_first_link(api_response, "audio")
-        if not link_info:
-            return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الفيديو.")
+    api_response = parsed.get("data", {})
 
-        download_url = link_info.get("url")
-        quality = link_info.get("quality", "غير معروف")
+    title = api_response.get("title", "فيديو")
+    thumb = api_response.get("thumb")
 
-        await zedevent.edit(f"📥 **جاري تحميل الفيديو:**\n🎬 {title}\n💡 الجودة: {quality}")
+    link_info = extract_first_link(api_response, "video") or extract_first_link(api_response, "audio")
+    if not link_info:
+        return await zedevent.edit("❌ لم يتم العثور على رابط التحميل الفيديو.")
 
-        file_path = f"/tmp/{title}.mp4"
+    download_url = link_info.get("url")
+    quality = link_info.get("quality", "غير معروف")
+
+    await zedevent.edit(f"📥 **جاري تحميل الفيديو:**\n🎬 {title}\n💡 الجودة: {quality}")
+
+    try:
+        dl_resp = requests.get(download_url, stream=True, timeout=30)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`download request error: {e}`")
+
+    if dl_resp.status_code != 200:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`bad status {dl_resp.status_code}`")
+
+    content_length = dl_resp.headers.get("content-length")
+    try:
+        if content_length and int(content_length) > 500 * 1024 * 1024:
+            return await zedevent.edit("⚠️ الملف أكبر من 500MB. التحميل مُوقوف لمنع استهلاك موارد.")
+    except Exception:
+        pass
+
+    safe_title = re.sub(r"[\\/*?\"<>|:]", "_", title)[:200]
+    file_path = f"/tmp/{safe_title}.mp4" if link_info.get("type") == "video" else f"/tmp/{safe_title}.mp3"
+
+    try:
         with open(file_path, "wb") as f:
-            f.write(requests.get(download_url, timeout=30).content)
+            for chunk in dl_resp.iter_content(chunk_size=1024 * 64):
+                if chunk:
+                    f.write(chunk)
+    except Exception as e:
+        return await zedevent.edit(f"⚠️ حدث خطأ أثناء كتابة الملف:\n`{e}`")
 
+    try:
         await event.client.send_file(
             event.chat_id,
             file=file_path,
@@ -180,9 +299,13 @@ async def vsong(event):
             supports_streaming=True,
             reply_to=reply_to_id,
         )
-
-        os.remove(file_path)
-        await zedevent.delete()
-
     except Exception as e:
-        await zedevent.edit(f"⚠️ حدث خطأ أثناء التحميل:\n`{e}`")
+        try:
+            return await zedevent.edit(f"⚠️ حدث خطأ أثناء إرسال الملف:\n`{e}`\n\nيمكنك محاولة هذا الرابط مباشرة:\n{download_url}")
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    await zedevent.delete()
