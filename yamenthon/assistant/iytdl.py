@@ -6,6 +6,7 @@
 import asyncio
 import glob
 import io
+import requests
 import os
 import re
 from pathlib import Path
