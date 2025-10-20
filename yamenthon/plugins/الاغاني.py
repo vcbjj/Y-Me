@@ -3,6 +3,7 @@ import contextlib
 import io
 import os
 import requests
+import re
 
 from telethon import types
 from telethon.errors.rpcerrorlist import YouBlockedUserError
@@ -12,7 +13,7 @@ from validators.url import url
 
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.functions import delete_conv, yt_search
+from ..helpers.functions import delete_conv
 from ..helpers.utils import reply_id
 from . import zedub
 
@@ -24,6 +25,22 @@ SONG_NOT_FOUND = "<b>⎉╎لـم استطـع ايجـاد المطلـوب .. 
 SONG_SENDING_STRING = "<b>╮ جـارِ تحميـل الاغنيـٓه... 🎧♥️╰</b>"
 
 API_URL = "https://api.dfkz.xo.je/apis/v3/download.php?url="
+
+
+# 🔧 دالة البحث الجديدة التي تعمل فعليًا وتعيد أول فيديو من نتائج YouTube
+async def yt_search(query: str):
+    try:
+        response = requests.get(
+            "https://www.youtube.com/results",
+            params={"search_query": query},
+            timeout=10,
+        )
+        video_ids = re.findall(r"watch\?v=(\S{11})", response.text)
+        if not video_ids:
+            return None
+        return f"https://www.youtube.com/watch?v={video_ids[0]}"
+    except Exception:
+        return None
 
 
 @zedub.zed_cmd(
@@ -45,7 +62,7 @@ async def song(event):
 
     zedevent = await edit_or_reply(event, SONG_SEARCH_STRING)
     video_link = await yt_search(str(query))
-    if not url(video_link):
+    if not video_link or not url(video_link):
         return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}")
 
     await zedevent.edit(SONG_SENDING_STRING)
@@ -93,7 +110,7 @@ async def vsong(event):
 
     zedevent = await edit_or_reply(event, "**╮ جـارِ البحث ؏ـن الفيديـو... 🎧♥️╰**")
     video_link = await yt_search(str(query))
-    if not url(video_link):
+    if not video_link or not url(video_link):
         return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}")
 
     await zedevent.edit("**╮ جـارِ تحميـل الفيديـو... 🎧♥️╰**")
