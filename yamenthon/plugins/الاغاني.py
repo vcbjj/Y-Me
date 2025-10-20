@@ -4,6 +4,7 @@ import io
 import os
 import requests
 import re
+import json
 
 from telethon import types
 from telethon.errors.rpcerrorlist import YouBlockedUserError
@@ -27,7 +28,6 @@ SONG_SENDING_STRING = "<b>╮ جـارِ تحميـل الاغنيـٓه... 🎧
 API_URL = "https://api.dfkz.xo.je/apis/v3/download.php?url="
 
 
-# 🔧 دالة البحث الجديدة التي تعمل فعليًا وتعيد أول فيديو من نتائج YouTube
 async def yt_search(query: str):
     try:
         response = requests.get(
@@ -41,6 +41,17 @@ async def yt_search(query: str):
         return f"https://www.youtube.com/watch?v={video_ids[0]}"
     except Exception:
         return None
+
+
+def safe_json_preview(data):
+    """عرض مختصر للـ JSON بدون تجاوز الحد"""
+    try:
+        text = json.dumps(data, ensure_ascii=False, indent=2)
+    except Exception:
+        text = str(data)
+    if len(text) > 3500:
+        return text[:3500] + "\n\n... (تم اختصار المخرجات)"
+    return text
 
 
 @zedub.zed_cmd(
@@ -63,7 +74,6 @@ async def song(event):
     zedevent = await edit_or_reply(event, SONG_SEARCH_STRING)
     video_link = await yt_search(str(query))
 
-    # ✅ إضافة أمر الطباعة لمعرفة نتيجة البحث
     if not video_link:
         return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}\n\n⚠️ **نتائج البحث:** لا يوجد أي فيديو.")
     else:
@@ -77,8 +87,9 @@ async def song(event):
     try:
         api_response = requests.get(API_URL + video_link).json()
 
-        # ✅ طباعة استجابة الـ API لمعرفة النتيجة الفعلية
-        await event.reply(f"**📡 رد الـ API:**\n`{api_response}`")
+        # ✅ عرض جزء مختصر من رد الـ API
+        preview = safe_json_preview(api_response)
+        await event.reply(f"**📡 رد الـ API (مختصر):**\n`{preview}`")
 
         if not api_response.get("success"):
             return await zedevent.edit("❌ فشل التحميل من API.")
@@ -123,7 +134,6 @@ async def vsong(event):
     zedevent = await edit_or_reply(event, "**╮ جـارِ البحث ؏ـن الفيديـو... 🎧♥️╰**")
     video_link = await yt_search(str(query))
 
-    # ✅ طباعة الرابط الناتج من البحث
     if not video_link:
         return await zedevent.edit(f"**⎉╎عـذراً .. لـم استطـع ايجـاد** {query}\n\n⚠️ **نتائج البحث:** لا يوجد أي فيديو.")
     else:
@@ -137,8 +147,9 @@ async def vsong(event):
     try:
         api_response = requests.get(API_URL + video_link).json()
 
-        # ✅ عرض رد الـ API لمعرفة النتيجة
-        await event.reply(f"**📡 رد الـ API:**\n`{api_response}`")
+        # ✅ عرض رد الـ API بشكل مختصر
+        preview = safe_json_preview(api_response)
+        await event.reply(f"**📡 رد الـ API (مختصر):**\n`{preview}`")
 
         if not api_response.get("success"):
             return await zedevent.edit("❌ فشل التحميل من API.")
