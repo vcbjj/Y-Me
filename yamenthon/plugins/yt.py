@@ -40,7 +40,7 @@ def find_youtube_url(*candidates) -> str | None:
 
 # حقوق الاسطوره عاشق الصمت @T_A_Tl 
 async def fetch_api(url: str):
-    api_url = f"https://api.dfkz.xo.je/apis/v3/download.php?url={url}"
+    api_url = f"https://yt-vli7.onrender.com/api/ytdl?url={url}"
     async with aiohttp.ClientSession() as session:
         async with session.get(api_url) as resp:
             if resp.status != 200:
